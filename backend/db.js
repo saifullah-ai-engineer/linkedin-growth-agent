@@ -141,7 +141,7 @@ function logError(source, message) {
 if (rowCount('model_config') === 0) {
   db.prepare(
     'INSERT INTO model_config (id, primary_model, fallback_model, temperature, max_tokens, key_present) VALUES (1, ?, ?, ?, ?, 0)'
-  ).run('openai/gpt-4o-mini', 'meta-llama/llama-3.3-70b-instruct:free', 0.7, 1000);
+  ).run('google/gemma-4-26b-a4b-it:free', 'google/gemma-4-31b-it:free', 0.7, 1000);
 }
 
 // Seed on first run only, when the tables are empty.

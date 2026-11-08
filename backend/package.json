@@ -1,1 +1,20 @@
-{"author":"","dependencies":{"express":"^5.3.0"},"description":"Backend for the LinkedIn Intelligence and Growth Agent: local auth, prospect CRM, OpenRouter AI proxy, and specialized agent modules.","keywords":[],"license":"ISC","main":"server.js","name":"linkedin-growth-agent-backend","scripts":{"start":"node server.js"},"version":"1.0.0"}
+{
+  "author": "",
+  "dependencies": {
+    "compression": "^1.8.2",
+    "express": "^5.3.0"
+  },
+  "description": "Backend for the LinkedIn Intelligence and Growth Agent: local auth, prospect CRM, OpenRouter AI proxy, and specialized agent modules.",
+  "keywords": [],
+  "license": "ISC",
+  "main": "server.js",
+  "name": "linkedin-growth-agent-backend",
+  "scripts": {
+    "start": "node server.js",
+    "build": "terser public/app.js -c -m -o public/app.min.js --source-map \"url=app.min.js.map\""
+  },
+  "version": "1.0.0",
+  "devDependencies": {
+    "terser": "^5.51.2"
+  }
+}

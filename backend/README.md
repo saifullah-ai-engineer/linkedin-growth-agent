@@ -12,6 +12,8 @@ node server.js
 
 The server listens on port 3000. The API base is `http://localhost:3000/api`.
 
+The dashboard loads `public/app.min.js`, the minified build of `public/app.js`. After editing `app.js`, rebuild it with `npm run build` (uses terser, installed as a dev dependency). The readable `app.js` stays in the repo as the source of truth.
+
 ## Setup steps
 
 1. Start the server with the commands above.
@@ -31,11 +33,11 @@ Auth: `GET /api/auth/status`, `POST /api/auth/setup`, `POST /api/auth/login`, `P
 
 Config and models: `GET /api/config`, `PUT /api/config`, `POST /api/config/key`, `POST /api/config/test`, `GET /api/models`.
 
-AI: `POST /api/ai/chat`, `POST /api/ai/draft`, `POST /api/strategist`. All three build prompts from real database evidence only (goals, memory, prospects, interactions) plus text the user pasted. With no key configured they return HTTP 503 `{ error: "not_configured", setup: [...] }` and generate no answer. On 429, timeout, or model unavailable they retry once with the fallback model, then return a structured error and write to `error_log`.
+AI: `POST /api/ai/chat`, `POST /api/ai/draft`, `POST /api/strategist`. All three build prompts from real database evidence only (goals, memory, prospects, interactions) plus text the user pasted. With no key configured they return HTTP 503 `{ error: "not_configured", setup: [...] }` and generate no answer. The app uses free models only, with a full fallback chain of all 12 free models in order. On 429, timeout, or model unavailable it walks the whole chain, then returns a structured error and writes to `error_log`.
 
 CRM: `GET/POST /api/prospects`, `GET/PUT/DELETE /api/prospects/:id`, `GET /api/prospects/prioritized`, `POST /api/prospects/:id/interactions`, `GET/POST /api/prospects/:id/notes`, `GET/POST/PUT/DELETE /api/goals`, `GET/POST/PUT/DELETE /api/memory`, `GET/POST /api/drafts`, `POST /api/drafts/:id/approve`, `POST /api/drafts/:id/reject`.
 
-Feedback and reporting: `GET /api/recommendations`, `POST /api/recommendations/:id/feedback`, `GET /api/audit`, `GET /api/errors`, `GET /api/analytics`.
+Feedback and reporting: `GET /api/recommendations`, `POST /api/recommendations/:id/feedback`, `GET /api/audit`, `GET /api/errors`, `GET /api/analytics`. The analytics response also returns `prospectsByDay` and `draftsByDay`, per-day counts for the last 14 days computed from `created_at`, with zero-count days included, so the Analytics charts are honest.
 
 Kill switch: `GET /api/killswitch`, `POST /api/killswitch { enabled }`. When enabled, all `/api/ai/*` and draft approve endpoints return 403 `{ error: "kill_switch_on" }`.
 

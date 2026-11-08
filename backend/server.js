@@ -1,6 +1,7 @@
 // LinkedIn Intelligence and Growth Agent backend.
 // Express + built-in node:sqlite. No native dependencies. No LinkedIn API use.
 const express = require('express');
+const compression = require('compression');
 const path = require('node:path');
 const { db, audit, logError, getKillSwitch, setKillSwitch } = require('./db');
 const auth = require('./auth');
@@ -10,9 +11,25 @@ const strategist = require('./agents/strategist');
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '1mb' }));
+app.use(compression());
 
-// Frontend is built by another agent into backend/public/.
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve a valid robots.txt so crawlers and audits do not parse the HTML
+// fallback. Access control for this local dashboard is the login, not
+// robots.txt, so the file allows crawling; nothing here is public.
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send('User-agent: *\nAllow: /\n');
+});
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+// Frontend lives in backend/public/. Cache static assets for a day,
+// but never cache index.html so a new deploy is picked up at once.
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d',
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+  },
+}));
 
 function notConfigured(res) {
   return res.status(503).json({ error: 'not_configured', setup: openrouter.SETUP_STEPS });
@@ -112,6 +129,11 @@ app.put('/api/config', auth.requireAuth, (req, res) => {
   const config = openrouter.getConfig();
   const primary = typeof body.primary_model === 'string' && body.primary_model ? body.primary_model : config.primary_model;
   const fallback = typeof body.fallback_model === 'string' && body.fallback_model ? body.fallback_model : config.fallback_model;
+  // Paid models are never allowed. The app uses free models only.
+  const isFree = (m) => typeof m === 'string' && m.endsWith(':free');
+  if (!isFree(primary) || !isFree(fallback)) {
+    return res.status(400).json({ error: 'paid_model_not_allowed', detail: 'Only free OpenRouter models are allowed. Pick a model ending in :free.' });
+  }
   const temperature = typeof body.temperature === 'number' ? body.temperature : config.temperature;
   const maxTokens = typeof body.max_tokens === 'number' ? body.max_tokens : config.max_tokens;
   db.prepare('UPDATE model_config SET primary_model = ?, fallback_model = ?, temperature = ?, max_tokens = ? WHERE id = 1')
@@ -402,6 +424,20 @@ app.get('/api/analytics', auth.requireAuth, (req, res) => {
   const followUpsDue = db.prepare('SELECT COUNT(*) AS c FROM prospects WHERE follow_up_date IS NOT NULL AND follow_up_date <= ?').get(today).c;
   const draftsByTypeStatus = db.prepare('SELECT type, status, COUNT(*) AS count FROM drafts GROUP BY type, status').all();
   const recommendationsByStatus = db.prepare('SELECT status, COUNT(*) AS count FROM recommendations GROUP BY status').all();
+  // Per-day counts for the last 14 days, computed from created_at. Days with
+  // no records are included with a count of 0, so the chart is honest.
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const prospectDayRows = db.prepare("SELECT date(created_at) AS day, COUNT(*) AS count FROM prospects WHERE date(created_at) >= ? GROUP BY day").all(days[0]);
+  const draftDayRows = db.prepare("SELECT date(created_at) AS day, COUNT(*) AS count FROM drafts WHERE date(created_at) >= ? GROUP BY day").all(days[0]);
+  const byDay = (rows) => {
+    const map = {};
+    rows.forEach((r) => { map[r.day] = r.count; });
+    return days.map((day) => ({ day, count: map[day] || 0 }));
+  };
   res.json({
     label: 'App records only. Counts are computed from real database rows in this app, not from LinkedIn.',
     totalProspects: db.prepare('SELECT COUNT(*) AS c FROM prospects').get().c,
@@ -409,6 +445,8 @@ app.get('/api/analytics', auth.requireAuth, (req, res) => {
     followUpsDue,
     draftsByTypeAndStatus: draftsByTypeStatus,
     recommendationsByStatus,
+    prospectsByDay: byDay(prospectDayRows),
+    draftsByDay: byDay(draftDayRows),
   });
 });
 

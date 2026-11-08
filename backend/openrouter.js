@@ -161,9 +161,45 @@ async function callModel(key, model, messages, temperature, maxTokens) {
   return String(content || '');
 }
 
-// Call chat completions with the primary model, retry once with the fallback
-// on 429, timeout, or model unavailable. Returns { content, modelUsed }.
-// Throws a structured error object { code, detail, status } on failure.
+// Free models only. Verified live 2026-11-09: OpenRouter lists 12 free models
+// on this key, free tier with 50 free requests a day. The chain below is the
+// full fallback order. Paid models are never in the chain.
+const FREE_MODEL_CHAIN = [
+  'google/gemma-4-26b-a4b-it:free',
+  'google/gemma-4-31b-it:free',
+  'liquid/lfm-3-1.7b:free',
+  'liquid/lfm-2.5-2.6b:free',
+  'nvidia/nemotron-3.5-lightning:free',
+  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+  'nvidia/nemotron-3.5-super-vl:free',
+  'cohere/north-mini-code:free',
+  'nvidia/nemotron-3-ultra-550b-a55b:free',
+  'recursive/flint-v1.0:free',
+  'xingchen-agi/xing4.0-29b-a4b:free',
+  'dots-studio/dots-3-note-preview:free',
+];
+
+function isFreeModel(model) {
+  return typeof model === 'string' && model.endsWith(':free');
+}
+
+function buildChain(opts, config) {
+  const chain = [];
+  const add = (model) => {
+    if (isFreeModel(model) && !chain.includes(model)) chain.push(model);
+  };
+  add(opts && opts.primary);
+  add(config.primary_model);
+  add(opts && opts.fallback);
+  add(config.fallback_model);
+  FREE_MODEL_CHAIN.forEach(add);
+  return chain;
+}
+
+// Call chat completions with free models only, walking the full fallback
+// chain in order on 429, timeout, or model unavailable. Returns
+// { content, modelUsed, tried }. Throws a structured error object
+// { code, detail, status } when every model in the chain has failed.
 async function chatWithFallback(messages, opts) {
   const key = getKey();
   if (!key) {
@@ -173,35 +209,31 @@ async function chatWithFallback(messages, opts) {
     throw err;
   }
   const config = getConfig();
-  const primary = (opts && opts.primary) || config.primary_model;
-  const fallback = (opts && opts.fallback) || config.fallback_model;
   const temperature = opts && opts.temperature != null ? opts.temperature : config.temperature;
   const maxTokens = opts && opts.max_tokens != null ? opts.max_tokens : config.max_tokens;
-  try {
-    const content = await callModel(key, primary, messages, temperature, maxTokens);
-    return { content, modelUsed: primary };
-  } catch (err) {
-    const retryable = err.name === 'AbortError' || !err.status || isRetryableStatus(err.status);
-    logError('openrouter/chat', `primary model ${primary} failed: ${err.message}`);
-    if (!retryable || !fallback || fallback === primary) {
-      const wrapped = new Error(err.message);
-      wrapped.code = err.status === 429 ? 'rate_limited' : 'model_error';
-      wrapped.detail = err.detail || err.message;
-      wrapped.status = err.status || 502;
-      throw wrapped;
-    }
+  const chain = buildChain(opts, config);
+  const tried = [];
+  let lastErr = null;
+  for (const model of chain) {
+    tried.push(model);
     try {
-      const content = await callModel(key, fallback, messages, temperature, maxTokens);
-      return { content, modelUsed: fallback };
-    } catch (err2) {
-      logError('openrouter/chat', `fallback model ${fallback} failed: ${err2.message}`);
-      const wrapped = new Error(err2.message);
-      wrapped.code = err2.status === 429 ? 'rate_limited' : 'model_error';
-      wrapped.detail = err2.detail || err2.message;
-      wrapped.status = err2.status || 502;
-      throw wrapped;
+      const content = await callModel(key, model, messages, temperature, maxTokens);
+      return { content, modelUsed: model, tried };
+    } catch (err) {
+      lastErr = err;
+      const retryable = err.name === 'AbortError' || !err.status || isRetryableStatus(err.status);
+      logError('openrouter/chat', `model ${model} failed: ${err.message}`);
+      if (!retryable) break;
     }
   }
+  const wrapped = new Error(
+    lastErr ? lastErr.message : 'Every free model in the fallback chain failed.'
+  );
+  wrapped.code = lastErr && lastErr.status === 429 ? 'rate_limited' : 'model_error';
+  wrapped.detail = (lastErr && (lastErr.detail || lastErr.message)) || wrapped.message;
+  wrapped.status = (lastErr && lastErr.status) || 502;
+  wrapped.tried = tried;
+  throw wrapped;
 }
 
 // Extract a JSON object from model output, tolerating surrounding text.
@@ -236,6 +268,8 @@ function validateStructured(parsed) {
 
 module.exports = {
   SETUP_STEPS,
+  FREE_MODEL_CHAIN,
+  buildChain,
   getKey,
   saveKey,
   getConfig,
