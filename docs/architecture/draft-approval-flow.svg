@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" font-family="Arial, Helvetica, sans-serif" role="img" aria-label="AI draft approval flow with kill switch and audit log">
+<rect width="1200" height="700" fill="#0d1526"/>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2dd4bf"/></marker>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5b8def"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f87171"/></marker>
+</defs>
+<text x="40" y="48" fill="#e8eefc" font-size="24" font-weight="bold">Draft approval flow: nothing sends itself</text>
+<text x="40" y="74" fill="#93a4c4" font-size="14">Every draft is generated from real evidence, saved as pending, and waits for a human decision.</text>
+<rect x="40" y="120" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="40" y="120" width="5" height="110" rx="2" fill="#5b8def"/>
+<text x="58" y="144" fill="#e8eefc" font-size="15" font-weight="bold">1. Draft requested</text>
+<text x="58" y="166" fill="#93a4c4" font-size="12.5">Content Studio, Conversations,</text>
+<text x="58" y="185" fill="#93a4c4" font-size="12.5">Profile Optimizer, or the</text>
+<text x="58" y="204" fill="#93a4c4" font-size="12.5">extension side panel</text>
+<rect x="330" y="120" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="330" y="120" width="5" height="110" rx="2" fill="#2dd4bf"/>
+<text x="348" y="144" fill="#e8eefc" font-size="15" font-weight="bold">2. Evidence gathered</text>
+<text x="348" y="166" fill="#93a4c4" font-size="12.5">Strategist reads goals,</text>
+<text x="348" y="185" fill="#93a4c4" font-size="12.5">memory, prospects, and</text>
+<text x="348" y="204" fill="#93a4c4" font-size="12.5">interactions from SQLite</text>
+<rect x="620" y="120" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="620" y="120" width="5" height="110" rx="2" fill="#2dd4bf"/>
+<text x="638" y="144" fill="#e8eefc" font-size="15" font-weight="bold">3. Model call</text>
+<text x="638" y="166" fill="#93a4c4" font-size="12.5">OpenRouter proxy walks</text>
+<text x="638" y="185" fill="#93a4c4" font-size="12.5">the 12 model free chain</text>
+<text x="638" y="204" fill="#93a4c4" font-size="12.5">on 429, timeout, or 5xx</text>
+<rect x="910" y="120" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="910" y="120" width="5" height="110" rx="2" fill="#2dd4bf"/>
+<text x="928" y="144" fill="#e8eefc" font-size="15" font-weight="bold">4. JSON validated</text>
+<text x="928" y="166" fill="#93a4c4" font-size="12.5">Reply must contain a</text>
+<text x="928" y="185" fill="#93a4c4" font-size="12.5">recommendation with</text>
+<text x="928" y="204" fill="#93a4c4" font-size="12.5">reasoning and evidence</text>
+<line x1="292" y1="175" x2="328" y2="175" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="582" y1="175" x2="618" y2="175" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="872" y1="175" x2="908" y2="175" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="1035" y1="230" x2="1035" y2="290" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="910" y="300" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="910" y="300" width="5" height="110" rx="2" fill="#5b8def"/>
+<text x="928" y="324" fill="#e8eefc" font-size="15" font-weight="bold">5. Saved as pending</text>
+<text x="928" y="346" fill="#93a4c4" font-size="12.5">Draft row in SQLite</text>
+<text x="928" y="365" fill="#93a4c4" font-size="12.5">status pending</text>
+<text x="928" y="384" fill="#93a4c4" font-size="12.5">Visible in the queue</text>
+<rect x="620" y="300" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="620" y="300" width="5" height="110" rx="2" fill="#5b8def"/>
+<text x="638" y="324" fill="#e8eefc" font-size="15" font-weight="bold">6. Human review</text>
+<text x="638" y="346" fill="#93a4c4" font-size="12.5">You read the draft</text>
+<text x="638" y="365" fill="#93a4c4" font-size="12.5">in the dashboard or</text>
+<text x="638" y="384" fill="#93a4c4" font-size="12.5">the side panel</text>
+<line x1="908" y1="355" x2="872" y2="355" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="330" y="300" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="330" y="300" width="5" height="110" rx="2" fill="#4ade80"/>
+<text x="348" y="324" fill="#e8eefc" font-size="15" font-weight="bold">7a. Approved</text>
+<text x="348" y="346" fill="#93a4c4" font-size="12.5">Status becomes approved</text>
+<text x="348" y="365" fill="#93a4c4" font-size="12.5">Audit log row written</text>
+<text x="348" y="384" fill="#93a4c4" font-size="12.5">Copy and send manually</text>
+<rect x="40" y="300" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="40" y="300" width="5" height="110" rx="2" fill="#f87171"/>
+<text x="58" y="324" fill="#e8eefc" font-size="15" font-weight="bold">7b. Rejected</text>
+<text x="58" y="346" fill="#93a4c4" font-size="12.5">Status becomes rejected</text>
+<text x="58" y="365" fill="#93a4c4" font-size="12.5">Audit log row written</text>
+<text x="58" y="384" fill="#93a4c4" font-size="12.5">Draft stays for reference</text>
+<line x1="618" y1="355" x2="582" y2="355" stroke="#4ade80" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="328" y1="355" x2="292" y2="355" stroke="#f87171" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="40" y="470" width="1120" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="40" y="470" width="5" height="110" rx="2" fill="#f87171"/>
+<text x="58" y="494" fill="#e8eefc" font-size="15" font-weight="bold">Kill switch: the emergency stop</text>
+<text x="58" y="516" fill="#93a4c4" font-size="12.5">Turning it on in Settings or the extension popup blocks POST /api/ai/chat, POST /api/ai/draft, POST /api/strategist, and POST /api/drafts/:id/approve with 403 kill_switch_on.</text>
+<text x="58" y="535" fill="#93a4c4" font-size="12.5">Drafts already saved stay saved. Turning it off again re-enables AI and approvals. The change itself is written to the audit log.</text>
+<text x="40" y="630" fill="#93a4c4" font-size="14">Recommendations use the same gate: feedback marks them done, ignored, or not_useful, and that outcome is stored and used by later recommendations.</text>
+</svg>

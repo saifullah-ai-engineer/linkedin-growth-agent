@@ -1,0 +1,15 @@
+%% Prospect pipeline: ten stages.
+%% Rendered version: prospect-lifecycle.svg in this folder.
+%% Stage weights come from GET /api/prospects/prioritized in server.js.
+%% priority = stage weight x 10 + relevance score x 0.5
+%%          + follow-up due 15 (or scheduled 5) + recent interaction 5.
+flowchart LR
+    T[Target<br/>weight 2] --> R[Research<br/>weight 3]
+    R --> CR[Connection Requested<br/>weight 3]
+    CR --> C[Connected<br/>weight 4]
+    C --> CV[Conversation<br/>weight 5]
+    CV --> QO[Qualified Opportunity<br/>weight 6]
+    QO --> M[Meeting<br/>weight 7]
+    M --> P[Proposal<br/>weight 8]
+    P --> W[Won<br/>weight 1<br/>Pipeline closed]
+    P --> L[Lost<br/>weight 0<br/>Pipeline closed]

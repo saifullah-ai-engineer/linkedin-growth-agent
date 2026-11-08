@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" font-family="Arial, Helvetica, sans-serif" role="img" aria-label="Prospect pipeline lifecycle with ten stages">
+<rect width="1200" height="640" fill="#0d1526"/>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2dd4bf"/></marker>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5b8def"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f87171"/></marker>
+</defs>
+<text x="40" y="48" fill="#e8eefc" font-size="24" font-weight="bold">Prospect pipeline: ten stages</text>
+<text x="40" y="74" fill="#93a4c4" font-size="14">A prospect moves forward through the stages. Won and Lost close the pipeline. Stage weights drive the prioritized ranking.</text>
+<rect x="30" y="130" width="128" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="30" y="130" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="98" y="160" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Target</text>
+<text x="98" y="210" fill="#93a4c4" font-size="12" text-anchor="middle">weight 2</text>
+<line x1="160" y1="178" x2="170" y2="178" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="174" y="130" width="128" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="174" y="130" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="242" y="160" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Research</text>
+<text x="242" y="210" fill="#93a4c4" font-size="12" text-anchor="middle">weight 3</text>
+<line x1="304" y1="178" x2="314" y2="178" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="318" y="130" width="128" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="318" y="130" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="386" y="160" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Connection</text>
+<text x="386" y="178" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Requested</text>
+<text x="386" y="210" fill="#93a4c4" font-size="12" text-anchor="middle">weight 3</text>
+<line x1="448" y1="178" x2="458" y2="178" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="462" y="130" width="128" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="462" y="130" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="530" y="160" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Connected</text>
+<text x="530" y="210" fill="#93a4c4" font-size="12" text-anchor="middle">weight 4</text>
+<line x1="592" y1="178" x2="602" y2="178" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="606" y="130" width="128" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="606" y="130" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="674" y="160" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Conversation</text>
+<text x="674" y="210" fill="#93a4c4" font-size="12" text-anchor="middle">weight 5</text>
+<line x1="736" y1="178" x2="746" y2="178" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="750" y="130" width="128" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="750" y="130" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="818" y="160" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Qualified</text>
+<text x="818" y="178" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Opportunity</text>
+<text x="818" y="210" fill="#93a4c4" font-size="12" text-anchor="middle">weight 6</text>
+<line x1="880" y1="178" x2="890" y2="178" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="894" y="130" width="128" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="894" y="130" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="962" y="160" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Meeting</text>
+<text x="962" y="210" fill="#93a4c4" font-size="12" text-anchor="middle">weight 7</text>
+<line x1="1024" y1="178" x2="1034" y2="178" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1038" y="130" width="128" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="1038" y="130" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="1106" y="160" fill="#e8eefc" font-size="13.5" font-weight="bold" text-anchor="middle">Proposal</text>
+<text x="1106" y="210" fill="#93a4c4" font-size="12" text-anchor="middle">weight 8</text>
+<line x1="1074" y1="226" x2="1074" y2="272" stroke="#2dd4bf" stroke-width="2"/>
+<line x1="950" y1="272" x2="1110" y2="272" stroke="#2dd4bf" stroke-width="2"/>
+<line x1="950" y1="272" x2="950" y2="296" stroke="#4ade80" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="1110" y1="272" x2="1110" y2="296" stroke="#f87171" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="880" y="300" width="140" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="880" y="300" width="5" height="96" rx="2" fill="#4ade80"/>
+<text x="898" y="324" fill="#e8eefc" font-size="15" font-weight="bold">Won</text>
+<text x="898" y="346" fill="#93a4c4" font-size="12.5">weight 1</text>
+<text x="898" y="365" fill="#93a4c4" font-size="12.5">Pipeline closed</text>
+<rect x="1040" y="300" width="140" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="1040" y="300" width="5" height="96" rx="2" fill="#f87171"/>
+<text x="1058" y="324" fill="#e8eefc" font-size="15" font-weight="bold">Lost</text>
+<text x="1058" y="346" fill="#93a4c4" font-size="12.5">weight 0</text>
+<text x="1058" y="365" fill="#93a4c4" font-size="12.5">Pipeline closed</text>
+<text x="40" y="300" fill="#93a4c4" font-size="14">From Proposal a prospect is marked Won or Lost. Either outcome can be changed later by editing the prospect stage.</text>
+<rect x="40" y="440" width="1120" height="150" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="40" y="440" width="5" height="150" rx="2" fill="#2dd4bf"/>
+<text x="58" y="464" fill="#e8eefc" font-size="15" font-weight="bold">How the prioritized ranking scores a prospect</text>
+<text x="58" y="486" fill="#93a4c4" font-size="12.5">priority = stage weight x 10 + relevance score x 0.5 + follow-up due 15 (or scheduled 5) + recent interaction 5</text>
+<text x="58" y="505" fill="#93a4c4" font-size="12.5">Example: a Meeting stage prospect (weight 7) with relevance 80 and a follow-up due today scores 70 + 40 + 15 = 125.</text>
+<text x="58" y="524" fill="#93a4c4" font-size="12.5">The ranking endpoint is GET /api/prospects/prioritized. Every rank carries a written reason, for example Stage Meeting (weight 7); relevance score 80; follow up due 2026-11-09.</text>
+<text x="58" y="543" fill="#93a4c4" font-size="12.5">Won prospects rank low (weight 1) and Lost prospects rank last (weight 0), so attention stays on open pipeline.</text>
+</svg>

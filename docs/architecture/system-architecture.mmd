@@ -1,0 +1,28 @@
+%% System architecture of the LinkedIn Growth Agent.
+%% Rendered version: system-architecture.svg in this folder.
+%% Local first: the dashboard and the extension talk only to the local
+%% backend. Nothing talks to LinkedIn. The OpenRouter key is server side only.
+flowchart TB
+    subgraph Client["On your computer"]
+        D[Dashboard<br/>Single page app<br/>index.html, styles.css, app.js to app.min.js<br/>13 pages]
+        E[Chrome extension<br/>Manifest V3, v0.2.0<br/>Side panel and popup<br/>Reads visible page text only]
+    end
+    subgraph Backend["Local backend: Node 20, Express 5, port 3000"]
+        API[REST API<br/>Auth on every route<br/>Bearer token, scrypt password<br/>Static dashboard, SPA fallback]
+        S[Chief Growth Strategist<br/>Classifies the request<br/>Gathers real DB evidence<br/>Stores recommendations]
+        OR[OpenRouter proxy<br/>Key stays server side only<br/>Free models only, 12 model chain<br/>Structured JSON validation]
+        K[Compliance: kill switch<br/>Blocks AI and draft approval<br/>403 kill_switch_on<br/>Every action in the audit log]
+    end
+    subgraph DataAI["Data and AI"]
+        DB[(SQLite<br/>backend/data/app.db<br/>13 tables, WAL mode<br/>Users, prospects, drafts, recommendations, audit log)]
+        ORA[OpenRouter API<br/>Chat completions endpoint<br/>Key validated on /auth/key<br/>429, timeout, or 5xx tries the next free model]
+    end
+
+    D --> API
+    E --> API
+    API --> S
+    S --> OR
+    OR --> ORA
+    API --> DB
+    S --> DB
+    API --> K

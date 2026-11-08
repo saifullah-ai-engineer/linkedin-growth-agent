@@ -1,0 +1,24 @@
+%% AI draft approval flow with kill switch and audit log.
+%% Rendered version: draft-approval-flow.svg in this folder.
+%% Nothing is ever sent to LinkedIn. Copying a draft does not send it.
+flowchart LR
+    REQ[1. Draft requested<br/>Content Studio, Conversations,<br/>Profile Optimizer, or the extension side panel]
+    EV[2. Evidence gathered<br/>Strategist reads goals, memory,<br/>prospects, and interactions from SQLite]
+    CALL[3. Model call<br/>OpenRouter proxy walks<br/>the 12 model free chain<br/>on 429, timeout, or 5xx]
+    JSON[4. JSON validated<br/>Reply must contain a<br/>recommendation with<br/>reasoning and evidence]
+    PEND[5. Saved as pending<br/>Draft row in SQLite<br/>status pending<br/>Visible in the queue]
+    REV[6. Human review<br/>You read the draft<br/>in the dashboard or<br/>the side panel]
+    APP[7a. Approved<br/>Status becomes approved<br/>Audit log row written<br/>Copy and send manually]
+    REJ[7b. Rejected<br/>Status becomes rejected<br/>Audit log row written<br/>Draft stays for reference]
+
+    REQ --> EV
+    EV --> CALL
+    CALL --> JSON
+    JSON --> PEND
+    PEND --> REV
+    REV --> APP
+    REV --> REJ
+
+    KS[Kill switch ON<br/>Blocks POST /api/ai/chat, POST /api/ai/draft,<br/>POST /api/strategist, and POST /api/drafts/:id/approve<br/>with 403 kill_switch_on]
+    KS -. blocks .-> CALL
+    KS -. blocks .-> APP

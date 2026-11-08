@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="920" viewBox="0 0 1200 920" font-family="Arial, Helvetica, sans-serif" role="img" aria-label="Backend component architecture and module dependencies">
+<rect width="1200" height="920" fill="#0d1526"/>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2dd4bf"/></marker>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5b8def"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f87171"/></marker>
+</defs>
+<text x="40" y="48" fill="#e8eefc" font-size="24" font-weight="bold">Backend components and how they connect</text>
+<text x="40" y="74" fill="#93a4c4" font-size="14">Arrows show require() dependencies. Every agent module reads only real database rows.</text>
+<rect x="40" y="100" width="1120" height="84" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="40" y="100" width="5" height="84" rx="2" fill="#2dd4bf"/>
+<text x="58" y="124" fill="#e8eefc" font-size="16" font-weight="bold">server.js: Express app</text>
+<text x="58" y="146" fill="#93a4c4" font-size="12.5">All API routes, compression, static dashboard, SPA fallback, robots.txt, favicon 204. Listens on port 3000 (PORT env).</text>
+<rect x="40" y="230" width="260" height="130" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="40" y="230" width="5" height="130" rx="2" fill="#5b8def"/>
+<text x="58" y="254" fill="#e8eefc" font-size="15" font-weight="bold">auth.js</text>
+<text x="58" y="276" fill="#93a4c4" font-size="12.5">scrypt password hash</text>
+<text x="58" y="295" fill="#93a4c4" font-size="12.5">Bearer token sessions</text>
+<text x="58" y="314" fill="#93a4c4" font-size="12.5">requireAuth middleware</text>
+<rect x="320" y="230" width="260" height="130" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="320" y="230" width="5" height="130" rx="2" fill="#5b8def"/>
+<text x="338" y="254" fill="#e8eefc" font-size="15" font-weight="bold">db.js</text>
+<text x="338" y="276" fill="#93a4c4" font-size="12.5">node:sqlite, WAL mode</text>
+<text x="338" y="295" fill="#93a4c4" font-size="12.5">13 tables, seed data</text>
+<text x="338" y="314" fill="#93a4c4" font-size="12.5">audit() and logError()</text>
+<rect x="600" y="230" width="260" height="130" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="600" y="230" width="5" height="130" rx="2" fill="#5b8def"/>
+<text x="618" y="254" fill="#e8eefc" font-size="15" font-weight="bold">openrouter.js</text>
+<text x="618" y="276" fill="#93a4c4" font-size="12.5">Key handling, .env 0600</text>
+<text x="618" y="295" fill="#93a4c4" font-size="12.5">Model list, free flag</text>
+<text x="618" y="314" fill="#93a4c4" font-size="12.5">12 model free fallback chain</text>
+<rect x="880" y="230" width="280" height="130" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="880" y="230" width="5" height="130" rx="2" fill="#2dd4bf"/>
+<text x="898" y="254" fill="#e8eefc" font-size="15" font-weight="bold">agents/strategist.js</text>
+<text x="898" y="276" fill="#93a4c4" font-size="12.5">classifyRequest()</text>
+<text x="898" y="295" fill="#93a4c4" font-size="12.5">gatherEvidence()</text>
+<text x="898" y="314" fill="#93a4c4" font-size="12.5">runStrategist()</text>
+<text x="898" y="333" fill="#93a4c4" font-size="12.5">buildSystemPrompt()</text>
+<text x="898" y="352" fill="#93a4c4" font-size="12.5">Requires: 5 builders, openrouter, db</text>
+<rect x="40" y="420" width="212" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="40" y="420" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="58" y="444" fill="#e8eefc" font-size="15" font-weight="bold">profile.js</text>
+<text x="58" y="466" fill="#93a4c4" font-size="12.5">Identity facts only</text>
+<text x="58" y="485" fill="#93a4c4" font-size="12.5">buildSection()</text>
+<rect x="272" y="420" width="212" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="272" y="420" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="290" y="444" fill="#e8eefc" font-size="15" font-weight="bold">audience.js</text>
+<text x="290" y="466" fill="#93a4c4" font-size="12.5">Prospects and goals</text>
+<text x="290" y="485" fill="#93a4c4" font-size="12.5">buildSection()</text>
+<rect x="504" y="420" width="212" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="504" y="420" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="522" y="444" fill="#e8eefc" font-size="15" font-weight="bold">relationship.js</text>
+<text x="522" y="466" fill="#93a4c4" font-size="12.5">Stages, interactions, notes</text>
+<text x="522" y="485" fill="#93a4c4" font-size="12.5">buildSection()</text>
+<rect x="736" y="420" width="212" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="736" y="420" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="754" y="444" fill="#e8eefc" font-size="15" font-weight="bold">content.js</text>
+<text x="754" y="466" fill="#93a4c4" font-size="12.5">Goals, memory, drafts</text>
+<text x="754" y="485" fill="#93a4c4" font-size="12.5">buildSection()</text>
+<rect x="968" y="420" width="212" height="96" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="968" y="420" width="5" height="96" rx="2" fill="#2dd4bf"/>
+<text x="986" y="444" fill="#e8eefc" font-size="15" font-weight="bold">outreach.js</text>
+<text x="986" y="466" fill="#93a4c4" font-size="12.5">Target prospects, notes</text>
+<text x="986" y="485" fill="#93a4c4" font-size="12.5">buildSection()</text>
+<text x="40" y="540" fill="#93a4c4" font-size="14">The five section builders each export buildSection() and read only their own slice of the database.</text>
+<rect x="40" y="580" width="540" height="150" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="40" y="580" width="5" height="150" rx="2" fill="#5b8def"/>
+<text x="58" y="604" fill="#e8eefc" font-size="15" font-weight="bold">public/: dashboard frontend</text>
+<text x="58" y="626" fill="#93a4c4" font-size="12.5">index.html: 13 pages, grouped sidebar</text>
+<text x="58" y="645" fill="#93a4c4" font-size="12.5">styles.css: dark navy design system</text>
+<text x="58" y="664" fill="#93a4c4" font-size="12.5">app.js: all page logic, API calls with the bearer token</text>
+<text x="58" y="683" fill="#93a4c4" font-size="12.5">app.min.js: terser build, loaded with defer</text>
+<rect x="620" y="580" width="540" height="150" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="620" y="580" width="5" height="150" rx="2" fill="#5b8def"/>
+<text x="638" y="604" fill="#e8eefc" font-size="15" font-weight="bold">extension/: Manifest V3</text>
+<text x="638" y="626" fill="#93a4c4" font-size="12.5">manifest.json: activeTab, storage, sidePanel</text>
+<text x="638" y="645" fill="#93a4c4" font-size="12.5">background.js: service worker, routes messages</text>
+<text x="638" y="664" fill="#93a4c4" font-size="12.5">content.js: detects page type, reads visible text</text>
+<text x="638" y="683" fill="#93a4c4" font-size="12.5">popup.js and sidepanel.js: settings, kill switch, drafts</text>
+<text x="638" y="702" fill="#93a4c4" font-size="12.5">Bearer token in chrome.storage.local</text>
+<text x="40" y="770" fill="#93a4c4" font-size="14">The dashboard and the extension call the backend API only. They never call OpenRouter and never hold the API key.</text>
+<text x="40" y="796" fill="#93a4c4" font-size="14">No module imports a paid model. openrouter.js accepts only model ids ending in :free, and PUT /api/config rejects anything else with 400 paid_model_not_allowed.</text>
+<line x1="170" y1="184" x2="170" y2="226" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="450" y1="184" x2="450" y2="226" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="730" y1="184" x2="730" y2="226" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="1020" y1="184" x2="1020" y2="226" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<text x="600" y="210" fill="#93a4c4" font-size="12" text-anchor="middle">requires</text>
+<line x1="146" y1="392" x2="1074" y2="392" stroke="#2dd4bf" stroke-width="2"/>
+<line x1="1020" y1="360" x2="1020" y2="392" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="146" y1="392" x2="146" y2="414" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="378" y1="392" x2="378" y2="414" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="610" y1="392" x2="610" y2="414" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="842" y1="392" x2="842" y2="414" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="1074" y1="392" x2="1074" y2="414" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+</svg>

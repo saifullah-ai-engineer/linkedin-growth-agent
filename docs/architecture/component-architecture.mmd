@@ -1,0 +1,39 @@
+%% Backend component architecture and module dependencies.
+%% Rendered version: component-architecture.svg in this folder.
+%% Arrows show require() dependencies. Every agent module reads only
+%% real database rows. No module imports a paid model.
+flowchart TB
+    SERVER[server.js: Express app<br/>All API routes, compression, static dashboard, SPA fallback, robots.txt, favicon 204<br/>Listens on port 3000, PORT env]
+
+    AUTH[auth.js<br/>scrypt password hash<br/>Bearer token sessions<br/>requireAuth middleware]
+    DBJS[db.js<br/>node:sqlite, WAL mode<br/>13 tables, seed data<br/>audit and error logging]
+    ORJS[openrouter.js<br/>Key handling, .env 0600<br/>Model list, free flag<br/>12 model free fallback chain]
+    STRAT[agents/strategist.js<br/>classifyRequest<br/>gatherEvidence<br/>runStrategist<br/>buildSystemPrompt<br/>Requires: 5 builders, openrouter, db]
+
+    PROF[profile.js<br/>Identity facts only<br/>buildSection]
+    AUD[audience.js<br/>Prospects and goals<br/>buildSection]
+    REL[relationship.js<br/>Stages, interactions, notes<br/>buildSection]
+    CON[content.js<br/>Goals, memory, drafts<br/>buildSection]
+    OUT[outreach.js<br/>Target prospects, notes<br/>buildSection]
+
+    PUB[public/: dashboard frontend<br/>index.html: 13 pages, grouped sidebar<br/>styles.css: dark navy design system<br/>app.js: all page logic, API calls with the bearer token<br/>app.min.js: terser build, loaded with defer]
+    EXT[extension/: Manifest V3<br/>manifest.json: activeTab, storage, sidePanel<br/>background.js: service worker, routes messages<br/>content.js: detects page type, reads visible text<br/>popup.js and sidepanel.js: settings, kill switch, drafts<br/>Bearer token in chrome.storage.local]
+
+    SERVER --> AUTH
+    SERVER --> DBJS
+    SERVER --> ORJS
+    SERVER --> STRAT
+    STRAT --> PROF
+    STRAT --> AUD
+    STRAT --> REL
+    STRAT --> CON
+    STRAT --> OUT
+    STRAT --> ORJS
+    STRAT --> DBJS
+    PROF --> DBJS
+    AUD --> DBJS
+    REL --> DBJS
+    CON --> DBJS
+    OUT --> DBJS
+    PUB --> SERVER
+    EXT --> SERVER
