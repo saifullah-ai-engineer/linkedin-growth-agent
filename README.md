@@ -10,9 +10,9 @@ An evidence-based AI strategist, prospect CRM, content studio, profile optimizer
 ![Manifest V3](https://img.shields.io/badge/extension-Manifest%20V3-yellow.svg)
 ![OpenRouter](https://img.shields.io/badge/AI-OpenRouter-violet.svg)
 
-![AI-generated illustration of a LinkedIn growth command center dashboard with a pipeline funnel, prospect cards, and AI recommendation panels](docs/images/hero.png)
+![LinkedIn Growth Agent hero banner: project name, description, and a dashboard preview with real empty-state numbers](docs/images/hero.png)
 
-*AI-generated illustration, not a screenshot of the app.*
+*Designed in HTML and CSS, using the real dashboard layout and real empty-state numbers. Not a screenshot of the app.*
 
 Built for Saif Ullah, Agentic AI Engineer at TechAurah. LinkedIn: linkedin.com/in/saif-ullah-ai-engineer. Portfolio: saifullah-ai-engineer.me. GitHub: saifullah-ai-engineer.
 
@@ -44,9 +44,9 @@ Real screenshots of the running dashboard, taken from the local app. No mockups.
 
 ## Key features
 
-![AI-generated illustration of six AI agents working together around a growth workflow](docs/images/agents.png)
+![Diagram of the six specialized agents around the Chief Growth Strategist](docs/images/agents.png)
 
-*AI-generated illustration of the six specialized agents: Strategist, Audience, Relationship, Content, Outreach, and Profile.*
+*Diagram built in HTML and CSS from the real agent modules: Strategist, Audience, Relationship, Content, Outreach, and Profile.*
 
 | Area | What works |
 |---|---|
@@ -65,9 +65,9 @@ Real screenshots of the running dashboard, taken from the local app. No mockups.
 
 ## Architecture
 
-![AI-generated illustration of the system: a dashboard on a laptop, a local server, a database, and a cloud node](docs/images/architecture-overview.png)
+![System architecture overview: dashboard and extension, local backend, SQLite, and the OpenRouter API](docs/images/architecture-overview.png)
 
-*AI-generated illustration of the system layout, not a technical diagram. The precise diagrams are below.*
+*Designed in HTML and CSS from the real codebase. The precise diagrams are below.*
 
 ```mermaid
 flowchart TB
@@ -146,9 +146,9 @@ Rendered diagrams with more detail live in [docs/architecture/](docs/architectur
 
 ## Core workflows
 
-![AI-generated illustration of the five step workflow: find, save, draft, review, close](docs/images/user-workflow.png)
+![Daily workflow diagram: find, save, draft, review, close](docs/images/user-workflow.png)
 
-*AI-generated illustration of the daily workflow, not a screenshot of the app.*
+*Designed in HTML and CSS from the real daily workflow. Not a screenshot of the app.*
 
 ### Daily workflow
 
@@ -350,7 +350,7 @@ linkedin-growth-agent/
     workflows/
       ci.yml                GitHub Actions: npm ci, build, node --check
   docs/
-    images/                 AI illustrations and the rendered repo diagram
+    images/                 HTML and CSS visuals, plus the rendered repo diagram
       hero.png, agents.png, architecture-overview.png,
       user-workflow.png, repo-structure.png
     screenshots/            Real dashboard screenshots (overview, strategist,
