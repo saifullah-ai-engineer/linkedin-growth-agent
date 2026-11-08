@@ -1,0 +1,1 @@
+{"author":"","dependencies":{"express":"^5.3.0"},"description":"Backend for the LinkedIn Intelligence and Growth Agent: local auth, prospect CRM, OpenRouter AI proxy, and specialized agent modules.","keywords":[],"license":"ISC","main":"server.js","name":"linkedin-growth-agent-backend","scripts":{"start":"node server.js"},"version":"1.0.0"}
