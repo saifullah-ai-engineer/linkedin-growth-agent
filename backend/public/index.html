@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinkedIn Intelligence and Growth Agent</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="screen-backend-down" class="auth-wrap" hidden>
+  <div class="auth-card">
+    <h1>Backend not running</h1>
+    <p>The dashboard cannot reach the local backend at this address. Start the backend, then refresh this page.</p>
+    <p>Start command:</p>
+    <pre>cd ~/workspace/linkedin-growth-agent/backend &amp;&amp; npm install &amp;&amp; node server.js</pre>
+    <p class="muted">The dashboard is served by the backend itself, so if you can see this page the server may have started after this check. Refresh to try again.</p>
+    <button class="btn primary" id="btn-retry-backend" type="button">Retry connection</button>
+  </div>
+</div>
+
+<div id="screen-setup" class="auth-wrap" hidden>
+  <div class="auth-card">
+    <h1>Set up your dashboard</h1>
+    <p>This is the first run. Choose a password for this dashboard. It is stored only on this machine, in the local database.</p>
+    <form id="form-setup">
+      <label for="setup-password">Password</label>
+      <input id="setup-password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+      <label for="setup-password2">Confirm password</label>
+      <input id="setup-password2" type="password" required minlength="8" autocomplete="new-password" placeholder="Repeat the password">
+      <p class="error" id="setup-error" hidden></p>
+      <button class="btn primary block" type="submit">Create password and continue</button>
+    </form>
+  </div>
+</div>
+
+<div id="screen-login" class="auth-wrap" hidden>
+  <div class="auth-card">
+    <h1>LinkedIn Intelligence and Growth Agent</h1>
+    <p>Sign in to your local dashboard. Nothing here contacts LinkedIn directly.</p>
+    <form id="form-login">
+      <label for="login-password">Password</label>
+      <input id="login-password" type="password" required autocomplete="current-password" placeholder="Your dashboard password">
+      <p class="error" id="login-error" hidden></p>
+      <button class="btn primary block" type="submit">Sign in</button>
+    </form>
+    <p class="muted">Your session is kept in this browser tab only. Closing the tab signs you out.</p>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">LI</div>
+      <div>
+        <strong>LinkedIn Intelligence</strong>
+        <span>Growth Agent</span>
+      </div>
+    </div>
+    <nav id="nav" aria-label="Dashboard pages">
+      <button type="button" data-page="overview" class="nav-btn active">Overview</button>
+      <button type="button" data-page="strategist" class="nav-btn">AI Strategist</button>
+      <button type="button" data-page="audience" class="nav-btn">Audience Intelligence</button>
+      <button type="button" data-page="prospects" class="nav-btn">Prospects</button>
+      <button type="button" data-page="crm" class="nav-btn">Relationship CRM</button>
+      <button type="button" data-page="conversations" class="nav-btn">Conversations</button>
+      <button type="button" data-page="content" class="nav-btn">Content Studio</button>
+      <button type="button" data-page="profile" class="nav-btn">Profile Optimizer</button>
+      <button type="button" data-page="extension" class="nav-btn">Browser Extension</button>
+      <button type="button" data-page="strategy" class="nav-btn">Strategy and Goals</button>
+      <button type="button" data-page="analytics" class="nav-btn">Analytics</button>
+      <button type="button" data-page="config" class="nav-btn">Model Configuration</button>
+      <button type="button" data-page="settings" class="nav-btn">Settings</button>
+    </nav>
+    <div class="sidebar-foot">
+      <span id="ai-status" class="pill">AI: checking</span>
+      <span id="kill-status" class="pill">Kill switch: off</span>
+      <button type="button" class="btn ghost block" id="btn-logout">Log out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button type="button" class="btn ghost menu-btn" id="btn-menu" aria-label="Toggle navigation">Menu</button>
+      <h1 id="page-title">Overview</h1>
+      <span class="muted" id="page-subtitle">Your records, from the local backend only.</span>
+    </header>
+    <div id="toast" class="toast" hidden></div>
+
+    <section class="page" id="page-overview">
+      <div class="grid widgets" id="overview-widgets"></div>
+      <div class="card">
+        <h2>Follow-ups due</h2>
+        <div id="overview-followups"><p class="muted">Loading follow-ups.</p></div>
+      </div>
+      <div class="card">
+        <h2>Drafts awaiting approval</h2>
+        <div id="overview-drafts"><p class="muted">Loading drafts.</p></div>
+      </div>
+      <p class="muted fineprint">All figures on this page come from your own saved records in this app. They are not LinkedIn analytics.</p>
+    </section>
+
+    <section class="page" id="page-strategist" hidden>
+      <div class="card">
+        <h2>Ask the strategist</h2>
+        <p class="muted">Ask about positioning, outreach, content, or any prospect. The strategist answers only from your saved memory, goals, and prospect records.</p>
+        <form id="form-strategist">
+          <label for="strategist-message">Your request</label>
+          <textarea id="strategist-message" rows="3" required placeholder="Example: Which prospect should I contact first this week, and why?"></textarea>
+          <button class="btn primary" type="submit" id="btn-strategist">Get recommendation</button>
+        </form>
+        <div id="strategist-result"></div>
+      </div>
+      <div class="card">
+        <h2>How recommendations work</h2>
+        <p>Every recommendation shows its reasoning, the evidence it used, and one specific next action. Mark each one done, ignored, or not useful so the strategist learns what helps.</p>
+      </div>
+    </section>
+
+    <section class="page" id="page-audience" hidden>
+      <div class="card">
+        <h2>Prioritized prospects</h2>
+        <p class="muted">Ranked by the backend from your saved prospect records. Each rank shows its reason. No people are invented here.</p>
+        <div id="audience-list"><p class="muted">Loading prioritized prospects.</p></div>
+        <button class="btn" type="button" id="btn-refresh-audience">Refresh ranking</button>
+      </div>
+      <div class="card">
+        <h2>Target audience definitions</h2>
+        <p class="muted">Saved in memory under Strategy and Goals. The strategist reads these when it ranks and drafts.</p>
+        <div id="audience-memory"><p class="muted">Loading audience definitions.</p></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-prospects" hidden>
+      <div class="card">
+        <h2>Add or edit a prospect</h2>
+        <form id="form-prospect">
+          <input type="hidden" id="prospect-id">
+          <div class="form-grid">
+            <div><label for="p-name">Name</label><input id="p-name" required placeholder="Full name"></div>
+            <div><label for="p-url">Profile URL</label><input id="p-url" type="url" placeholder="https://www.linkedin.com/in/..."></div>
+            <div><label for="p-company">Company</label><input id="p-company" placeholder="Company"></div>
+            <div><label for="p-title">Title</label><input id="p-title" placeholder="Job title"></div>
+            <div><label for="p-industry">Industry</label><input id="p-industry" placeholder="Industry"></div>
+            <div><label for="p-expertise">Expertise</label><input id="p-expertise" placeholder="What they are expert in"></div>
+            <div><label for="p-source">Source</label><input id="p-source" placeholder="Where you found them"></div>
+            <div><label for="p-score">Relevance score (0 to 100)</label><input id="p-score" type="number" min="0" max="100" placeholder="e.g. 80"></div>
+            <div><label for="p-score-reason">Why this score</label><input id="p-score-reason" placeholder="Written reason for the relevance score"></div>
+            <div><label for="p-opportunity">Opportunity</label><input id="p-opportunity" placeholder="What the opportunity is"></div>
+            <div><label for="p-stage">Stage</label>
+              <select id="p-stage">
+                <option>Target</option><option>Research</option><option>Connection Requested</option>
+                <option>Connected</option><option>Conversation</option><option>Qualified Opportunity</option>
+                <option>Meeting</option><option>Proposal</option><option>Won</option><option>Lost</option>
+              </select>
+            </div>
+            <div><label for="p-followup">Follow-up date</label><input id="p-followup" type="date"></div>
+            <div><label for="p-last">Last interaction</label><input id="p-last" type="date"></div>
+            <div><label for="p-next">Next action</label><input id="p-next" placeholder="One specific next action"></div>
+          </div>
+          <label for="p-notes">Notes</label>
+          <textarea id="p-notes" rows="3" placeholder="Notes about this prospect"></textarea>
+          <div class="row">
+            <button class="btn primary" type="submit" id="btn-save-prospect">Save prospect</button>
+            <button class="btn" type="button" id="btn-clear-prospect">Clear form</button>
+            <span class="muted" id="prospect-form-status"></span>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Follow-up reminders</h2>
+        <div id="prospect-reminders"><p class="muted">Loading reminders.</p></div>
+      </div>
+      <div class="card">
+        <h2>Prospects</h2>
+        <div class="row filters">
+          <input id="prospect-search" type="search" placeholder="Search name, company, or title">
+          <select id="prospect-filter-stage" aria-label="Filter by stage">
+            <option value="">All stages</option>
+            <option>Target</option><option>Research</option><option>Connection Requested</option>
+            <option>Connected</option><option>Conversation</option><option>Qualified Opportunity</option>
+            <option>Meeting</option><option>Proposal</option><option>Won</option><option>Lost</option>
+          </select>
+          <button class="btn" type="button" id="btn-refresh-prospects">Refresh</button>
+        </div>
+        <div id="prospect-list"><p class="muted">Loading prospects.</p></div>
+      </div>
+      <div class="card">
+        <h2>Pipeline by stage</h2>
+        <div id="prospect-pipeline"><p class="muted">Loading pipeline.</p></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-crm" hidden>
+      <div class="card">
+        <h2>Relationship CRM</h2>
+        <label for="crm-select">Choose a prospect</label>
+        <select id="crm-select"><option value="">Select a prospect</option></select>
+        <div id="crm-detail"><p class="muted">Select a prospect to see their notes and interaction log.</p></div>
+      </div>
+      <div class="card" id="crm-forms" hidden>
+        <h2>Add an interaction</h2>
+        <form id="form-interaction">
+          <div class="form-grid">
+            <div><label for="i-type">Type</label>
+              <select id="i-type"><option>Message</option><option>Call</option><option>Meeting</option><option>Comment</option><option>Other</option></select>
+            </div>
+            <div><label for="i-date">Date</label><input id="i-date" type="date"></div>
+          </div>
+          <label for="i-summary">Summary</label>
+          <textarea id="i-summary" rows="3" required placeholder="What happened in this interaction"></textarea>
+          <button class="btn primary" type="submit" id="btn-add-interaction">Add interaction</button>
+        </form>
+        <h2>Add a note</h2>
+        <form id="form-note">
+          <label for="n-text">Note</label>
+          <textarea id="n-text" rows="3" required placeholder="A note about this prospect"></textarea>
+          <button class="btn primary" type="submit" id="btn-add-note">Add note</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="page" id="page-conversations" hidden>
+      <div class="card">
+        <h2>Conversation summary and follow-up</h2>
+        <p class="muted">Paste a conversation you already had. The AI writes a short summary and a suggested follow-up draft. The draft goes to the approval queue. Nothing is sent anywhere.</p>
+        <form id="form-conversation">
+          <label for="conv-prospect">Prospect (optional)</label>
+          <select id="conv-prospect"><option value="">No prospect selected</option></select>
+          <label for="conv-text">Conversation text</label>
+          <textarea id="conv-text" rows="8" required placeholder="Paste the conversation here"></textarea>
+          <button class="btn primary" type="submit" id="btn-summarise">Summarise and draft follow-up</button>
+        </form>
+        <div id="conversation-result"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-content" hidden>
+      <div class="card">
+        <h2>Post draft generator</h2>
+        <form id="form-post">
+          <div class="form-grid">
+            <div><label for="post-topic">Topic</label><input id="post-topic" required placeholder="What the post is about"></div>
+            <div><label for="post-angle">Angle</label><input id="post-angle" placeholder="Your angle or take"></div>
+            <div><label for="post-mode">Writing mode</label>
+              <select id="post-mode">
+                <option>Professional</option><option>Friendly</option><option>Thoughtful</option><option>Technical</option>
+                <option>Founder-to-founder</option><option>AI expert</option><option>Business development</option><option>Collaboration-focused</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn primary" type="submit" id="btn-gen-post">Generate post draft</button>
+        </form>
+        <div id="post-result"></div>
+      </div>
+      <div class="card">
+        <h2>Comment generator</h2>
+        <p class="muted">Paste the post you want to comment on. The comment references only that text.</p>
+        <form id="form-comment">
+          <label for="comment-post">Post text</label>
+          <textarea id="comment-post" rows="5" required placeholder="Paste the full post text here"></textarea>
+          <label for="comment-mode">Writing mode</label>
+          <select id="comment-mode">
+            <option>Professional</option><option>Friendly</option><option>Thoughtful</option><option>Technical</option>
+            <option>Founder-to-founder</option><option>AI expert</option><option>Business development</option><option>Collaboration-focused</option>
+          </select>
+          <button class="btn primary" type="submit" id="btn-gen-comment">Generate comment draft</button>
+        </form>
+        <div id="comment-result"></div>
+      </div>
+      <div class="card">
+        <h2>Connection and follow-up messages</h2>
+        <p class="muted">These use a real saved prospect. Pick one below, then generate.</p>
+        <form id="form-outreach">
+          <label for="outreach-prospect">Prospect</label>
+          <select id="outreach-prospect" required><option value="">Select a prospect</option></select>
+          <label for="outreach-kind">Message type</label>
+          <select id="outreach-kind">
+            <option value="connection">Connection request message</option>
+            <option value="follow_up">Follow-up message</option>
+          </select>
+          <label for="outreach-context">Context (optional)</label>
+          <input id="outreach-context" placeholder="Anything specific to mention">
+          <button class="btn primary" type="submit" id="btn-gen-outreach">Generate message draft</button>
+        </form>
+        <div id="outreach-result"></div>
+      </div>
+      <div class="card">
+        <h2>Approval queue</h2>
+        <p class="muted">Every draft waits here until you approve or reject it. Nothing is sent anywhere from this dashboard.</p>
+        <div id="draft-queue"><p class="muted">Loading drafts.</p></div>
+        <button class="btn" type="button" id="btn-refresh-drafts">Refresh queue</button>
+      </div>
+    </section>
+
+    <section class="page" id="page-profile" hidden>
+      <div class="card">
+        <h2>Profile Optimizer</h2>
+        <p class="muted">Your real facts are prefilled below. Edit them, then generate each section as an editable draft. Every draft needs your approval before it is used anywhere.</p>
+        <form id="form-profile">
+          <div class="form-grid">
+            <div><label for="pf-name">Name</label><input id="pf-name" value="Saif Ullah"></div>
+            <div><label for="pf-title">Current role</label><input id="pf-title" value="Agentic AI Engineer at TechAurah"></div>
+            <div><label for="pf-linkedin">LinkedIn</label><input id="pf-linkedin" value="linkedin.com/in/saif-ullah-ai-engineer/"></div>
+            <div><label for="pf-portfolio">Portfolio</label><input id="pf-portfolio" value="saifullah-ai-engineer.me"></div>
+            <div><label for="pf-github">GitHub</label><input id="pf-github" value="saifullah-ai-engineer"></div>
+            <div><label for="pf-services">Services</label><input id="pf-services" value="Lead handling audit, fixed AI build, managed agent service"></div>
+          </div>
+          <label for="pf-expertise">Expertise</label>
+          <textarea id="pf-expertise" rows="2">Agentic AI systems, AI automation, lead handling agents, custom AI builds</textarea>
+          <label for="pf-objectives">Objectives</label>
+          <textarea id="pf-objectives" rows="2">Win work from US and UK startup founders and CTOs, grow authority as an Agentic AI Engineer</textarea>
+          <label for="pf-projects">Projects</label>
+          <textarea id="pf-projects" rows="2">Lead Catcher Agent, Voice Clone Pipeline, Car Dent Detector, Smart Kissan</textarea>
+          <label for="pf-achievements">Achievements</label>
+          <textarea id="pf-achievements" rows="2">Built and shipped open source agentic AI projects, growing audience across Facebook, Instagram, TikTok and YouTube</textarea>
+          <label for="pf-certs">Certifications</label>
+          <textarea id="pf-certs" rows="2"></textarea>
+          <label for="pf-industries">Target industries</label>
+          <input id="pf-industries" value="Startups, SaaS, AI products, services businesses">
+          <label for="pf-markets">Target markets</label>
+          <input id="pf-markets" value="US, UK">
+          <label for="pf-audience">Target people</label>
+          <input id="pf-audience" value="US and UK startup founders, CTOs, AI professionals, recruiters, decision-makers">
+        </form>
+        <div class="row">
+          <button class="btn primary" type="button" id="btn-gen-headline">Generate headline</button>
+          <button class="btn" type="button" id="btn-gen-about">Generate About</button>
+          <button class="btn" type="button" id="btn-gen-experience">Generate experience bullets</button>
+          <button class="btn" type="button" id="btn-gen-featured">Generate featured strategy</button>
+          <button class="btn" type="button" id="btn-gen-skills">Generate skills</button>
+          <button class="btn" type="button" id="btn-gen-checklist">Generate checklist</button>
+        </div>
+        <div id="profile-result"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-extension" hidden>
+      <div class="card">
+        <h2>Browser Extension</h2>
+        <p>The LinkedIn Intelligence Assistant extension sits beside LinkedIn in your browser. It reads only the page text you are already viewing, asks your local backend for a draft, and never sends, clicks, likes, or connects for you.</p>
+        <h3>What it does</h3>
+        <ul>
+          <li>Reads visible text on the LinkedIn page you are viewing.</li>
+          <li>Sends that text to your local backend only, for drafting help.</li>
+          <li>Shows drafts in a side panel for you to copy by hand.</li>
+        </ul>
+        <h3>What it does not do</h3>
+        <ul>
+          <li>It never sends a message, connection request, like, or comment.</li>
+          <li>It never scrapes hidden data or profiles you have not opened.</li>
+          <li>It never contacts OpenRouter or LinkedIn directly. All AI calls go through your local backend.</li>
+          <li>It never holds your OpenRouter API key.</li>
+        </ul>
+        <h3>Install steps</h3>
+        <ol>
+          <li>Open your browser extensions page and turn on Developer mode.</li>
+          <li>Choose Load unpacked and select the <code>extension</code> folder inside <code>linkedin-growth-agent</code>.</li>
+          <li>Open the extension popup and save the backend URL and token below.</li>
+          <li>Open LinkedIn, then open the extension side panel to use it.</li>
+        </ol>
+        <h3>Compliance limits</h3>
+        <p>Use it only on pages you open yourself, only for drafting, and only at a human pace. If the kill switch is on, all extension actions are disabled. Stop at any LinkedIn warning and report it. The extension is a drafting helper, not automation.</p>
+      </div>
+      <div class="card">
+        <h2>Extension backend settings</h2>
+        <p class="muted">Copy these into the extension popup. The token below is your current session token, shown only in this browser tab.</p>
+        <label for="ext-url">Backend base URL</label>
+        <input id="ext-url" value="http://localhost:3000">
+        <label for="ext-token">Backend auth token</label>
+        <div class="row">
+          <input id="ext-token" type="password" readonly placeholder="Sign in to fill this in">
+          <button class="btn" type="button" id="btn-show-token">Show</button>
+          <button class="btn" type="button" id="btn-copy-token">Copy token</button>
+        </div>
+        <p class="muted">The extension stores these only in its own storage on this device. Do not share the token.</p>
+        <button class="btn" type="button" id="btn-test-ext-backend">Test backend connection</button>
+        <span class="muted" id="ext-test-status"></span>
+      </div>
+    </section>
+
+    <section class="page" id="page-strategy" hidden>
+      <div class="card">
+        <h2>Goals</h2>
+        <form id="form-goal">
+          <input type="hidden" id="goal-id">
+          <div class="form-grid">
+            <div><label for="g-title">Goal</label><input id="g-title" required placeholder="e.g. Book 5 qualified calls this month"></div>
+            <div><label for="g-target">Target</label><input id="g-target" placeholder="Measurable target"></div>
+            <div><label for="g-deadline">Deadline</label><input id="g-deadline" type="date"></div>
+            <div><label for="g-status">Status</label>
+              <select id="g-status"><option>Active</option><option>Done</option><option>Paused</option></select>
+            </div>
+          </div>
+          <label for="g-desc">Description</label>
+          <textarea id="g-desc" rows="2" placeholder="What success looks like"></textarea>
+          <div class="row">
+            <button class="btn primary" type="submit" id="btn-save-goal">Save goal</button>
+            <button class="btn" type="button" id="btn-clear-goal">Clear form</button>
+          </div>
+        </form>
+        <div id="goal-list"><p class="muted">Loading goals.</p></div>
+      </div>
+      <div class="card">
+        <h2>Memory</h2>
+        <p class="muted">This is what the strategist reads: target audiences, positioning, communication style, offerings, and brand strategy. Edit or delete any item.</p>
+        <form id="form-memory">
+          <input type="hidden" id="memory-id">
+          <div class="form-grid">
+            <div><label for="m-category">Category</label>
+              <select id="m-category">
+                <option>Target audience</option><option>Positioning</option><option>Communication style</option>
+                <option>Offering</option><option>Brand strategy</option><option>Other</option>
+              </select>
+            </div>
+            <div><label for="m-key">Label</label><input id="m-key" required placeholder="Short label, e.g. Primary audience"></div>
+          </div>
+          <label for="m-value">Content</label>
+          <textarea id="m-value" rows="3" required placeholder="The fact or rule the strategist should remember"></textarea>
+          <div class="row">
+            <button class="btn primary" type="submit" id="btn-save-memory">Save memory item</button>
+            <button class="btn" type="button" id="btn-clear-memory">Clear form</button>
+          </div>
+        </form>
+        <div id="memory-list"><p class="muted">Loading memory.</p></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-analytics" hidden>
+      <div class="card">
+        <h2>Analytics</h2>
+        <p class="muted">Computed only from your app records. These are not LinkedIn analytics and no LinkedIn figures are shown here.</p>
+        <button class="btn" type="button" id="btn-refresh-analytics">Refresh analytics</button>
+        <div id="analytics-body"><p class="muted">Loading analytics.</p></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-config" hidden>
+      <div class="card">
+        <h2>OpenRouter API key</h2>
+        <p class="muted">The key is sent only to this backend and stored there. It is never written into any dashboard file.</p>
+        <form id="form-key">
+          <label for="cfg-key">API key</label>
+          <input id="cfg-key" type="password" autocomplete="off" placeholder="Paste your OpenRouter key">
+          <button class="btn primary" type="submit" id="btn-save-key">Save key</button>
+          <span class="muted" id="key-status"></span>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Models</h2>
+        <form id="form-config">
+          <div class="form-grid">
+            <div><label for="cfg-primary">Primary model</label><select id="cfg-primary"></select></div>
+            <div><label for="cfg-fallback">Fallback model</label><select id="cfg-fallback"></select></div>
+            <div><label for="cfg-temp">Temperature</label><input id="cfg-temp" type="number" step="0.1" min="0" max="2" value="0.7"></div>
+            <div><label for="cfg-tokens">Max tokens</label><input id="cfg-tokens" type="number" min="100" max="32000" step="100" value="4000"></div>
+          </div>
+          <label class="check"><input type="checkbox" id="cfg-free-only"> Show free models only</label>
+          <div class="row">
+            <button class="btn primary" type="submit" id="btn-save-config">Save configuration</button>
+            <button class="btn" type="button" id="btn-test-config">Test connection</button>
+            <span class="muted" id="config-status"></span>
+          </div>
+        </form>
+        <p class="muted" id="config-summary">Loading configuration.</p>
+      </div>
+      <div class="card">
+        <h2>Usage and error log</h2>
+        <div id="error-log"><p class="muted">Loading error log.</p></div>
+        <button class="btn" type="button" id="btn-refresh-errors">Refresh log</button>
+      </div>
+    </section>
+
+    <section class="page" id="page-settings" hidden>
+      <div class="card">
+        <h2>Kill switch</h2>
+        <p>When the kill switch is on, all AI actions and extension actions stop. Drafts already saved stay saved.</p>
+        <label class="check"><input type="checkbox" id="kill-toggle"> Kill switch on</label>
+        <p class="muted" id="kill-note">Loading kill switch state.</p>
+      </div>
+      <div class="card">
+        <h2>Audit log</h2>
+        <p class="muted">A record of actions taken in this dashboard.</p>
+        <div id="audit-log"><p class="muted">Loading audit log.</p></div>
+        <button class="btn" type="button" id="btn-refresh-audit">Refresh audit log</button>
+      </div>
+      <div class="card">
+        <h2>Data</h2>
+        <p>All data in this dashboard lives in the local SQLite database on this machine. There is no cloud copy. Signing out clears only this browser tab session, not your data.</p>
+        <button class="btn" type="button" id="btn-logout-2">Log out</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
