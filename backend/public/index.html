@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="LinkedIn Intelligence and Growth Agent: a local dashboard with an evidence-based AI strategist, prospect CRM, content studio, and profile optimizer. All data stays on your machine.">
 <title>LinkedIn Intelligence and Growth Agent</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div id="screen-backend-down" class="auth-wrap" hidden>
+<main id="screen-backend-down" class="auth-wrap" hidden>
   <div class="auth-card">
     <h1>Backend not running</h1>
     <p>The dashboard cannot reach the local backend at this address. Start the backend, then refresh this page.</p>
@@ -16,9 +17,9 @@
     <p class="muted">The dashboard is served by the backend itself, so if you can see this page the server may have started after this check. Refresh to try again.</p>
     <button class="btn primary" id="btn-retry-backend" type="button">Retry connection</button>
   </div>
-</div>
+</main>
 
-<div id="screen-setup" class="auth-wrap" hidden>
+<main id="screen-setup" class="auth-wrap" hidden>
   <div class="auth-card">
     <h1>Set up your dashboard</h1>
     <p>This is the first run. Choose a password for this dashboard. It is stored only on this machine, in the local database.</p>
@@ -31,9 +32,9 @@
       <button class="btn primary block" type="submit">Create password and continue</button>
     </form>
   </div>
-</div>
+</main>
 
-<div id="screen-login" class="auth-wrap" hidden>
+<main id="screen-login" class="auth-wrap" hidden>
   <div class="auth-card">
     <h1>LinkedIn Intelligence and Growth Agent</h1>
     <p>Sign in to your local dashboard. Nothing here contacts LinkedIn directly.</p>
@@ -45,7 +46,7 @@
     </form>
     <p class="muted">Your session is kept in this browser tab only. Closing the tab signs you out.</p>
   </div>
-</div>
+</main>
 
 <div id="app" hidden>
   <aside class="sidebar">
@@ -57,17 +58,21 @@
       </div>
     </div>
     <nav id="nav" aria-label="Dashboard pages">
+      <div class="nav-section">Command</div>
       <button type="button" data-page="overview" class="nav-btn active">Overview</button>
       <button type="button" data-page="strategist" class="nav-btn">AI Strategist</button>
+      <button type="button" data-page="analytics" class="nav-btn">Analytics</button>
+      <div class="nav-section">Pipeline</div>
       <button type="button" data-page="audience" class="nav-btn">Audience Intelligence</button>
       <button type="button" data-page="prospects" class="nav-btn">Prospects</button>
       <button type="button" data-page="crm" class="nav-btn">Relationship CRM</button>
       <button type="button" data-page="conversations" class="nav-btn">Conversations</button>
+      <div class="nav-section">Create</div>
       <button type="button" data-page="content" class="nav-btn">Content Studio</button>
       <button type="button" data-page="profile" class="nav-btn">Profile Optimizer</button>
       <button type="button" data-page="extension" class="nav-btn">Browser Extension</button>
+      <div class="nav-section">System</div>
       <button type="button" data-page="strategy" class="nav-btn">Strategy and Goals</button>
-      <button type="button" data-page="analytics" class="nav-btn">Analytics</button>
       <button type="button" data-page="config" class="nav-btn">Model Configuration</button>
       <button type="button" data-page="settings" class="nav-btn">Settings</button>
     </nav>
@@ -80,14 +85,30 @@
 
   <main class="main">
     <header class="topbar">
-      <button type="button" class="btn ghost menu-btn" id="btn-menu" aria-label="Toggle navigation">Menu</button>
+      <button type="button" class="btn ghost menu-btn" id="btn-menu" aria-label="Menu">Menu</button>
       <h1 id="page-title">Overview</h1>
       <span class="muted" id="page-subtitle">Your records, from the local backend only.</span>
     </header>
     <div id="toast" class="toast" hidden></div>
 
     <section class="page" id="page-overview">
-      <div class="grid widgets" id="overview-widgets"></div>
+      <div class="grid widgets" id="overview-widgets">
+        <div class="widget"><div class="num">…</div><div class="label">Prospects saved</div></div>
+        <div class="widget"><div class="num">…</div><div class="label">Follow-ups due</div></div>
+        <div class="widget"><div class="num">…</div><div class="label">Drafts created</div></div>
+        <div class="widget"><div class="num">…</div><div class="label">Actions approved</div></div>
+        <div class="widget"><div class="num">…</div><div class="label">Recommendations pending</div></div>
+      </div>
+      <div class="overview-grid">
+        <div class="card">
+          <div class="card-head"><h2>Pipeline overview</h2><span class="muted">By stage</span></div>
+          <div id="overview-pipeline"><p class="muted">Loading pipeline.</p></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Recent activity</h2><span class="muted">App records only</span></div>
+          <div id="overview-activity"><p class="muted">Loading activity.</p></div>
+        </div>
+      </div>
       <div class="card">
         <h2>Follow-ups due</h2>
         <div id="overview-followups"><p class="muted">Loading follow-ups.</p></div>
@@ -173,7 +194,7 @@
       <div class="card">
         <h2>Prospects</h2>
         <div class="row filters">
-          <input id="prospect-search" type="search" placeholder="Search name, company, or title">
+          <input id="prospect-search" type="search" aria-label="Search prospects by name, company, or title" placeholder="Search name, company, or title">
           <select id="prospect-filter-stage" aria-label="Filter by stage">
             <option value="">All stages</option>
             <option>Target</option><option>Research</option><option>Connection Requested</option>
@@ -454,7 +475,7 @@
             <div><label for="cfg-temp">Temperature</label><input id="cfg-temp" type="number" step="0.1" min="0" max="2" value="0.7"></div>
             <div><label for="cfg-tokens">Max tokens</label><input id="cfg-tokens" type="number" min="100" max="32000" step="100" value="4000"></div>
           </div>
-          <label class="check"><input type="checkbox" id="cfg-free-only"> Show free models only</label>
+          <label class="check"><input type="checkbox" id="cfg-free-only" checked> Show free models only</label>
           <div class="row">
             <button class="btn primary" type="submit" id="btn-save-config">Save configuration</button>
             <button class="btn" type="button" id="btn-test-config">Test connection</button>
@@ -492,6 +513,6 @@
   </main>
 </div>
 
-<script src="app.js"></script>
+<script src="app.min.js" defer></script>
 </body>
 </html>
