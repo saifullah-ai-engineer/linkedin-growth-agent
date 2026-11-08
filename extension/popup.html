@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinkedIn Intelligence Assistant</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 14px; width: 340px; color: #1a1a1a; }
+  h1 { font-size: 15px; margin: 0 0 8px; }
+  p { font-size: 13px; line-height: 1.5; margin: 6px 0; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0; }
+  .label { font-size: 13px; font-weight: 600; display: block; margin: 10px 0 4px; }
+  .status { font-size: 13px; color: #555; }
+  .backend-status { font-size: 13px; color: #8a1a1a; }
+  button { width: 100%; padding: 9px 10px; margin-top: 8px; font-size: 13px; cursor: pointer; border: 1px solid #0a66c2; background: #0a66c2; color: #fff; border-radius: 6px; }
+  button.secondary { background: #fff; color: #0a66c2; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .note { font-size: 12px; color: #666; }
+  input[type="checkbox"] { width: 18px; height: 18px; }
+  input[type="text"], input[type="password"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+  <h1>LinkedIn Intelligence Assistant</h1>
+  <p class="status" id="pageType">Page: checking...</p>
+  <p class="status" id="pageUrl"></p>
+  <div class="row">
+    <span class="label" style="margin:0;">Kill switch</span>
+    <input type="checkbox" id="killSwitch" aria-label="Kill switch">
+  </div>
+  <p class="note" id="killNote">When the kill switch is on, all extension actions are disabled.</p>
+
+  <h1 style="margin-top:14px;">Local backend</h1>
+  <label class="label" for="backendUrl">Backend base URL</label>
+  <input type="text" id="backendUrl" placeholder="http://localhost:3000">
+  <label class="label" for="authToken">Backend auth token</label>
+  <input type="password" id="authToken" placeholder="Paste your local backend token" autocomplete="off">
+  <p class="note">Stored only in chrome.storage.local on this device. The extension never holds an OpenRouter API key.</p>
+  <button id="saveBackend" class="secondary">Save backend settings</button>
+  <button id="testBackend" class="secondary">Test backend connection</button>
+  <p class="backend-status" id="backendStatus">Backend: not checked yet.</p>
+
+  <button id="openPanel">Open side panel</button>
+  <button id="refresh" class="secondary">Refresh page info</button>
+  <p class="note">Reads only visible text you are already viewing. Drafts come from your local backend. No automation, no sending, no scraping hidden data. Every draft needs your manual confirmation before it is copied.</p>
+  <script src="popup.js"></script>
+</body>
+</html>

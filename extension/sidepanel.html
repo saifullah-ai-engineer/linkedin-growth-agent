@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinkedIn Intelligence Assistant</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 14px; color: #1a1a1a; font-size: 14px; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 16px 0 6px; }
+  p { line-height: 1.5; margin: 6px 0; }
+  .meta { font-size: 13px; color: #555; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+  button { padding: 9px 8px; font-size: 13px; cursor: pointer; border: 1px solid #0a66c2; background: #fff; color: #0a66c2; border-radius: 6px; }
+  button.primary { background: #0a66c2; color: #fff; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.full { grid-column: 1 / -1; }
+  .box { border: 1px solid #ddd; border-radius: 6px; padding: 10px; background: #f9f9f9; white-space: pre-wrap; word-wrap: break-word; font-size: 13px; line-height: 1.5; }
+  .box.editable { background: #fff; }
+  textarea { width: 100%; min-height: 90px; font-family: inherit; font-size: 13px; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
+  label { font-size: 13px; font-weight: 600; display: block; margin: 10px 0 4px; }
+  .confirm { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0; font-size: 13px; }
+  .status { font-size: 13px; color: #0a66c2; min-height: 18px; }
+  .warn { color: #8a1a1a; font-size: 13px; }
+  .backend-box { border: 1px solid #c00; border-radius: 6px; padding: 10px; background: #fff4f4; font-size: 13px; line-height: 1.5; margin: 10px 0; }
+  .backend-box.ok { border-color: #1a7a2e; background: #f0f7f0; }
+  .row { display: flex; gap: 8px; }
+  .row button { flex: 1; }
+  input[type="text"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+  <h1>LinkedIn Intelligence Assistant</h1>
+  <p class="meta" id="pageInfo">Page: loading visible text you are already viewing...</p>
+  <p class="meta" id="killStatus"></p>
+
+  <div class="backend-box" id="backendBox">
+    <strong>Backend: not connected</strong>
+    <p>Drafts come from your local backend. No draft will be generated until the backend is connected.</p>
+    <p>Setup steps:<br>1. Start your local backend (default http://localhost:3000).<br>2. Open the extension popup and set the backend base URL.<br>3. Paste your local backend auth token in the popup.<br>4. Press Test backend connection in the popup, then press Check backend below.</p>
+  </div>
+  <button id="checkBackend" class="full">Check backend</button>
+
+  <div class="actions">
+    <button data-action="analyze">Analyze Profile</button>
+    <button data-action="relevance">Explain Relevance</button>
+    <button data-action="connect">Draft Connection Message</button>
+    <button data-action="comment">Generate Comment</button>
+    <button data-action="summarize">Summarize Conversation</button>
+    <button data-action="followup">Suggest Follow-up</button>
+    <button data-action="saveProspect" class="primary">Save Prospect</button>
+    <button data-action="notes">Add Relationship Notes</button>
+  </div>
+  <button id="refreshContext" class="full">Refresh page text</button>
+
+  <h2>Visible page text used</h2>
+  <p class="meta">Only text visible on the page you are viewing. Nothing hidden is read. This text is sent to your local backend only when you press an action.</p>
+  <div class="box" id="sourceText">No page text loaded yet. Open this panel on a LinkedIn page, then press Refresh page text.</div>
+
+  <h2>Draft</h2>
+  <div class="box editable" id="draftOutput">Choose an action above. The draft from your local backend appears here for your review.</div>
+
+  <div class="confirm">
+    <input type="checkbox" id="confirmReview">
+    <label for="confirmReview" style="font-weight:400; margin:0;">I reviewed this draft and I confirm it is accurate before copying. Nothing is sent automatically.</label>
+  </div>
+
+  <div class="row">
+    <button id="copyDraft" class="primary" disabled>Copy draft</button>
+    <button id="saveDraft">Save draft</button>
+  </div>
+  <p class="status" id="status"></p>
+
+  <h2>Relationship notes</h2>
+  <label for="noteKey">Person or company</label>
+  <input type="text" id="noteKey" placeholder="e.g. Jane Smith">
+  <label for="noteText">Notes</label>
+  <textarea id="noteText" placeholder="Add notes about this person or company. Saved locally only."></textarea>
+  <button id="saveNotes" class="primary full" style="margin-top:8px;">Save notes locally</button>
+
+  <h2>Your profile (saved settings)</h2>
+  <p class="meta" id="settingsInfo">Saif Ullah, Agentic AI Engineer at TechAurah. Services: lead handling audit, fixed AI build, managed agent service. Targets: US/UK startup founders, CTOs, AI professionals, recruiters, decision-makers.</p>
+  <p class="warn">Compliance: no automation, no bulk actions, no sending, no scraping hidden data, no CAPTCHA bypass. Every draft needs your manual confirmation. Use the kill switch in the popup to disable all actions.</p>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
