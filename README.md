@@ -12,7 +12,7 @@ An evidence-based AI strategist, prospect CRM, content studio, profile optimizer
 
 ![LinkedIn Growth Agent hero banner: project name, description, and a dashboard preview with real empty-state numbers](docs/images/hero.png)
 
-*Designed in HTML and CSS, using the real dashboard layout and real empty-state numbers. Not a screenshot of the app.*
+*Designed in HTML and CSS from the real dashboard layout and empty-state numbers. Not a screenshot.*
 
 Built for Saif Ullah, Agentic AI Engineer at TechAurah. LinkedIn: linkedin.com/in/saif-ullah-ai-engineer. Portfolio: saifullah-ai-engineer.me. GitHub: saifullah-ai-engineer.
 
