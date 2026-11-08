@@ -7,6 +7,73 @@
   var TOKEN_KEY = 'li_token';
   var STAGES = ['Target', 'Research', 'Connection Requested', 'Connected', 'Conversation', 'Qualified Opportunity', 'Meeting', 'Proposal', 'Won', 'Lost'];
   var CLOSED_STAGES = ['Won', 'Lost'];
+  var STAGE_COLORS = {
+    'Target': '#8fa3c8', 'Research': '#6ec3e8', 'Connection Requested': '#e8b45a',
+    'Connected': '#4cc38a', 'Conversation': '#a394f7', 'Qualified Opportunity': '#3fc1b0',
+    'Meeting': '#7aa5f8', 'Proposal': '#f08c5a', 'Won': '#34d399', 'Lost': '#f26d6d'
+  };
+
+  function stageSlug(stage) {
+    return String(stage || 'Target').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  }
+  function stagePill(stage) {
+    return '<span class="stage-pill stage-' + stageSlug(stage) + '">' + esc(stage || 'Target') + '</span>';
+  }
+  function initials(name) {
+    var parts = String(name || 'Unnamed').trim().split(/\s+/);
+    var first = parts[0] ? parts[0].charAt(0) : '?';
+    var second = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return (first + second).toUpperCase();
+  }
+  function shortDate(value) {
+    var s = String(value || '').slice(0, 10);
+    if (!s) return '';
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var parts = s.split('-');
+    if (parts.length !== 3) return s;
+    return months[Number(parts[1]) - 1] + ' ' + Number(parts[2]);
+  }
+  /* Inline SVG donut chart from real stage counts. No invented numbers. */
+  function donutChart(entries, total) {
+    if (!entries.length || !total) return '<div class="empty">No data yet. Add a prospect to see the pipeline shape.</div>';
+    var r = 62;
+    var circ = 2 * Math.PI * r;
+    var offset = 0;
+    var segments = entries.map(function (e) {
+      var frac = e[1] / total;
+      var len = frac * circ;
+      var seg = '<circle cx="80" cy="80" r="' + r + '" fill="none" stroke="' +
+        (STAGE_COLORS[e[0]] || '#5b8def') + '" stroke-width="22" stroke-dasharray="' +
+        len.toFixed(1) + ' ' + (circ - len).toFixed(1) + '" stroke-dashoffset="' + (-offset).toFixed(1) + '"/>';
+      offset += len;
+      return seg;
+    }).join('');
+    var legend = entries.map(function (e) {
+      var pct = Math.round((e[1] / total) * 100);
+      return '<li><span class="dot" style="background:' + (STAGE_COLORS[e[0]] || '#5b8def') + '"></span>' +
+        esc(e[0]) + '<span class="pct">' + pct + '%</span><span class="count">' + esc(e[1]) + '</span></li>';
+    }).join('');
+    return '<div class="chart-wrap">' +
+      '<svg class="donut" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Prospects by stage, ' + total + ' total">' +
+      '<circle cx="80" cy="80" r="' + r + '" fill="none" stroke="#0e1628" stroke-width="22"/>' +
+      '<g transform="rotate(-90 80 80)">' + segments + '</g>' +
+      '<text class="donut-center" x="80" y="78" text-anchor="middle">' + total + '</text>' +
+      '<text class="donut-sub" x="80" y="96" text-anchor="middle">prospects</text></svg>' +
+      '<ul class="legend">' + legend + '</ul></div>';
+  }
+  /* Inline SVG-free bar columns from real per-day counts. */
+  function dayBars(entries) {
+    if (!entries.length) return '<div class="empty">No data yet. Records added over the last 14 days will appear here.</div>';
+    var max = Math.max.apply(null, entries.map(function (e) { return e[1]; }).concat([1]));
+    return '<div class="svg-bars" role="img" aria-label="Records added per day over the last 14 days">' +
+      entries.map(function (e) {
+        var h = Math.round((e[1] / max) * 110);
+        return '<div class="svg-bar-col' + (e[1] === 0 ? ' zero' : '') + '">' +
+          '<span class="bar-value">' + esc(e[1]) + '</span>' +
+          '<div class="svg-bar" style="height:' + Math.max(h, 2) + 'px"></div>' +
+          '<span class="bar-day">' + esc(shortDate(e[0])) + '</span></div>';
+      }).join('') + '</div>';
+  }
   var WRITING_MODES = ['Professional', 'Friendly', 'Thoughtful', 'Technical', 'Founder-to-founder', 'AI expert', 'Business development', 'Collaboration-focused'];
 
   var state = {
@@ -399,7 +466,9 @@
 
   async function loadOverview() {
     var w = $('overview-widgets');
-    w.innerHTML = '<p class="muted">Loading overview.</p>';
+    // The widget shells are already in the HTML, so the grid keeps its
+    // height while data loads. Do not replace them with a loading line,
+    // or the cards below would jump when the real figures arrive.
     var results = await Promise.allSettled([
       api('/api/prospects'), api('/api/drafts'), api('/api/analytics')
     ]);
@@ -410,20 +479,51 @@
     state.drafts = drafts;
     var due = prospects.filter(isDue);
     var approved = drafts.filter(function (d) { return (d.status || '') === 'approved'; }).length;
+    var rejected = drafts.filter(function (d) { return (d.status || '') === 'rejected'; }).length;
     var pending = drafts.filter(function (d) { return (d.status || 'pending') === 'pending'; }).length;
-    var pendingRecs = (analytics.recommendationsPending !== undefined) ? analytics.recommendationsPending : pending;
+    var recRows = asArray(analytics.recommendationsByStatus || []);
+    var pendingRecs = recRows.reduce(function (sum, r) {
+      return sum + ((r.status === 'pending') ? (Number(r.count) || 0) : 0);
+    }, 0);
+    var active = prospects.filter(function (p) { return CLOSED_STAGES.indexOf(p.stage || 'Target') === -1; }).length;
+    var dueToday = due.filter(function (p) {
+      return String(p.follow_up_date || p.followUpDate || '').slice(0, 10) === todayStr();
+    }).length;
+    var totalRecs = recRows.reduce(function (sum, r) { return sum + (Number(r.count) || 0); }, 0);
     var widgets = [
-      ['Prospects saved', prospects.length],
-      ['Follow-ups due', due.length],
-      ['Drafts created', drafts.length],
-      ['Actions approved', approved],
-      ['Recommendations pending', pendingRecs]
+      ['Prospects saved', prospects.length, active + ' in active stages'],
+      ['Follow-ups due', due.length, dueToday + ' due today'],
+      ['Drafts created', drafts.length, pending + ' pending approval'],
+      ['Actions approved', approved, rejected + ' rejected'],
+      ['Recommendations pending', pendingRecs, totalRecs + ' total recommendations']
     ];
-    w.innerHTML = widgets.map(function (x) {
-      return '<div class="widget"><div class="num">' + esc(x[1]) + '</div><div class="label">' + esc(x[0]) + '</div></div>';
+    w.innerHTML = widgets.map(function (x, i) {
+      return '<div class="widget stat-' + i + '"><div class="num">' + esc(x[1]) + '</div><div class="label">' + esc(x[0]) + '</div><div class="sub">' + esc(x[2]) + '</div></div>';
     }).join('');
     if (!prospects.length && !drafts.length) {
       w.insertAdjacentHTML('beforeend', '<p class="muted">No data yet. Add a prospect or generate a draft to see figures here.</p>');
+    }
+    var pipe = $('overview-pipeline');
+    var stageCounts = STAGES.map(function (s) {
+      return [s, prospects.filter(function (p) { return (p.stage || 'Target') === s; }).length];
+    }).filter(function (e) { return e[1] > 0; });
+    pipe.innerHTML = donutChart(stageCounts, prospects.length);
+    var act = $('overview-activity');
+    var events = [];
+    prospects.forEach(function (p) {
+      if (p.created_at || p.createdAt) events.push({ when: String(p.created_at || p.createdAt), kind: 'prospect', label: 'Prospect added: ' + (p.name || 'Unnamed') });
+    });
+    drafts.forEach(function (d) {
+      if (d.created_at || d.createdAt) events.push({ when: String(d.created_at || d.createdAt), kind: 'draft', label: 'Draft created: ' + (d.title || d.type || 'Draft') });
+    });
+    events.sort(function (a, b) { return b.when.localeCompare(a.when); });
+    var recent = events.slice(0, 6);
+    if (!recent.length) {
+      act.innerHTML = '<div class="empty">No data yet. Prospects you add and drafts you create will show up here.</div>';
+    } else {
+      act.innerHTML = '<ul class="activity-list">' + recent.map(function (e) {
+        return '<li><span class="activity-dot ' + e.kind + '"></span><span>' + esc(e.label) + '</span><span class="when">' + esc(shortDate(e.when)) + '</span></li>';
+      }).join('') + '</ul>';
     }
     var fw = $('overview-followups');
     if (!due.length) {
@@ -631,30 +731,33 @@
     } else if (!list.length) {
       el.innerHTML = '<div class="empty">No prospects match this search or filter.</div>';
     } else {
-      el.innerHTML = '<div class="list">' + list.map(function (p) {
+      el.innerHTML = '<div class="table-wrap"><table class="crm"><thead><tr>' +
+        '<th scope="col">Prospect</th><th scope="col">Stage</th><th scope="col">Relevance</th>' +
+        '<th scope="col">Follow-up</th><th scope="col">Next action</th><th scope="col">Actions</th>' +
+        '</tr></thead><tbody>' + list.map(function (p) {
         var seeded = p.seeded || p.is_seed || p.source === 'seed' || p.is_example;
-        return '<div class="item"><h3>' + esc(p.name || 'Unnamed') + (seeded ? ' <span class="tag">Seeded example</span>' : '') + '</h3>' +
-          '<p class="meta">' + esc(p.title || '') + (p.company ? ' at ' + esc(p.company) : '') +
-          (p.profile_url || p.profileUrl ? ' | <a href="' + esc(p.profile_url || p.profileUrl) + '" target="_blank" rel="noopener">Profile</a>' : '') + '</p>' +
-          '<p><span class="tag">' + esc(p.stage || 'Target') + '</span>' +
-          (p.relevance_score !== undefined && p.relevance_score !== null ? '<span class="tag">Relevance ' + esc(p.relevance_score) + '</span>' : '') +
-          (p.industry ? '<span class="tag">' + esc(p.industry) + '</span>' : '') + '</p>' +
-          (p.relevance_reason || p.relevanceReason ? '<p><strong>Why this score:</strong> ' + esc(p.relevance_reason || p.relevanceReason) + '</p>' : '') +
-          (p.opportunity ? '<p><strong>Opportunity:</strong> ' + esc(p.opportunity) + '</p>' : '') +
-          (p.next_action || p.nextAction ? '<p><strong>Next action:</strong> ' + esc(p.next_action || p.nextAction) + '</p>' : '') +
-          (p.follow_up_date || p.followUpDate ? '<p><strong>Follow-up:</strong> ' + esc(String(p.follow_up_date || p.followUpDate).slice(0, 10)) + '</p>' : '') +
-          (p.notes ? '<p>' + esc(p.notes) + '</p>' : '') +
-          '<div class="row">' +
+        var score = (p.relevance_score !== undefined && p.relevance_score !== null) ? Number(p.relevance_score) : null;
+        var followUp = String(p.follow_up_date || p.followUpDate || '').slice(0, 10);
+        return '<tr><td><div class="prospect-cell"><span class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</span>' +
+          '<div><strong>' + esc(p.name || 'Unnamed') + (seeded ? ' <span class="tag">Seeded example</span>' : '') + '</strong>' +
+          '<span>' + esc(p.title || '') + (p.company ? ' at ' + esc(p.company) : '') +
+          (p.profile_url || p.profileUrl ? ' | <a href="' + esc(p.profile_url || p.profileUrl) + '" target="_blank" rel="noopener">Profile</a>' : '') + '</span></div></div></td>' +
+          '<td>' + stagePill(p.stage || 'Target') + '</td>' +
+          '<td>' + (score === null ? '<span class="muted">Not scored</span>' :
+            '<span class="score-cell"><span class="score-track"><span class="score-fill" style="width:' + score + '%"></span></span>' + esc(score) + '</span>') + '</td>' +
+          '<td>' + (followUp ? esc(shortDate(followUp)) : '<span class="muted">Not set</span>') + '</td>' +
+          '<td>' + esc(String(p.next_action || p.nextAction || '').slice(0, 60) || 'None recorded') + '</td>' +
+          '<td><div class="table-actions">' +
           '<button class="btn small" type="button" data-edit-prospect="' + esc(p.id) + '">Edit</button>' +
           '<button class="btn small" type="button" data-crm-prospect="' + esc(p.id) + '">Open in CRM</button>' +
           '<button class="btn small danger" type="button" data-delete-prospect="' + esc(p.id) + '">Delete</button>' +
-          '</div></div>';
-      }).join('') + '</div>';
+          '</div></td></tr>';
+      }).join('') + '</tbody></table></div>';
     }
     var pipe = $('prospect-pipeline');
     pipe.innerHTML = '<div class="pipeline">' + STAGES.map(function (s) {
       var inStage = state.prospects.filter(function (p) { return (p.stage || 'Target') === s; });
-      return '<div class="stage-col"><h4>' + esc(s) + ' (' + inStage.length + ')</h4>' +
+      return '<div class="stage-col"><h4>' + esc(s) + ' <span class="count">' + inStage.length + '</span></h4>' +
         (inStage.length ? inStage.map(function (p) {
           return '<div class="mini">' + esc(p.name || 'Unnamed') + '</div>';
         }).join('') : '<div class="mini muted">None</div>') + '</div>';
@@ -1221,26 +1324,44 @@
     try {
       var data = await api('/api/analytics');
       var byStage = data.prospectsByStage || data.prospects_by_stage || data.byStage || {};
-      var byType = data.draftsByType || data.drafts_by_type || data.byType || {};
-      var stageEntries = Object.keys(byStage).map(function (k) { return [k, Number(byStage[k]) || 0]; });
+      var stageEntries = asArray(byStage).map(function (r) { return [r.stage, Number(r.count) || 0]; });
+      if (!stageEntries.length && !Array.isArray(byStage)) {
+        stageEntries = Object.keys(byStage).map(function (k) { return [k, Number(byStage[k]) || 0]; });
+      }
       if (!stageEntries.length && state.prospects.length) {
         stageEntries = STAGES.map(function (s) {
           return [s, state.prospects.filter(function (p) { return (p.stage || 'Target') === s; }).length];
         }).filter(function (e) { return e[1] > 0; });
       }
-      var typeEntries = Object.keys(byType).map(function (k) { return [k, Number(byType[k]) || 0]; });
+      var byTypeStatus = asArray(data.draftsByTypeAndStatus || []);
+      var typeTotals = {};
+      byTypeStatus.forEach(function (r) {
+        typeTotals[r.type] = (typeTotals[r.type] || 0) + (Number(r.count) || 0);
+      });
+      var typeEntries = Object.keys(typeTotals).map(function (k) { return [k, typeTotals[k]]; });
+      var recRows = asArray(data.recommendationsByStatus || []);
+      var recEntries = recRows.map(function (r) { return [r.status, Number(r.count) || 0]; });
       var due = data.followUpsDue !== undefined ? data.followUpsDue : data.follow_ups_due;
       if (due === undefined) due = state.prospects.filter(isDue).length;
       var totalProspects = data.totalProspects !== undefined ? data.totalProspects : state.prospects.length;
       var totalDrafts = data.totalDrafts !== undefined ? data.totalDrafts : state.drafts.length;
+      var prospectDays = asArray(data.prospectsByDay || []).map(function (r) { return [r.day, Number(r.count) || 0]; });
+      var draftDays = asArray(data.draftsByDay || []).map(function (r) { return [r.day, Number(r.count) || 0]; });
       body.innerHTML =
         '<div class="grid widgets">' +
-        '<div class="widget"><div class="num">' + esc(totalProspects) + '</div><div class="label">Prospects saved</div></div>' +
-        '<div class="widget"><div class="num">' + esc(due) + '</div><div class="label">Follow-ups due</div></div>' +
-        '<div class="widget"><div class="num">' + esc(totalDrafts) + '</div><div class="label">Drafts created</div></div>' +
+        '<div class="widget stat-0"><div class="num">' + esc(totalProspects) + '</div><div class="label">Prospects saved</div><div class="sub">App records only</div></div>' +
+        '<div class="widget stat-1"><div class="num">' + esc(due) + '</div><div class="label">Follow-ups due</div><div class="sub">Across all stages</div></div>' +
+        '<div class="widget stat-2"><div class="num">' + esc(totalDrafts) + '</div><div class="label">Drafts created</div><div class="sub">All types combined</div></div>' +
+        '</div>' +
+        '<div class="overview-grid">' +
+        '<div class="card"><div class="card-head"><h2>Prospects added per day</h2><span class="muted">Last 14 days</span></div>' +
+        dayBars(prospectDays) + '</div>' +
+        '<div class="card"><div class="card-head"><h2>Drafts created per day</h2><span class="muted">Last 14 days</span></div>' +
+        dayBars(draftDays) + '</div>' +
         '</div>' +
         barChart('Prospects by stage', stageEntries) +
         barChart('Drafts by type', typeEntries) +
+        barChart('Recommendations by status', recEntries) +
         '<p class="muted fineprint">These charts are computed only from app records. They are not LinkedIn analytics.</p>';
     } catch (e) {
       body.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
