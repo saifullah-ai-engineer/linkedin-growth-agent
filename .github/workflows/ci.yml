@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: node --check server.js
+      - run: node --check openrouter.js
+      - run: node --check db.js
+      - run: for f in agents/*.js; do node --check "$f"; done
+      - run: for f in ../extension/*.js; do node --check "$f"; done
+      - run: git diff --exit-code public/app.min.js public/app.min.js.map
