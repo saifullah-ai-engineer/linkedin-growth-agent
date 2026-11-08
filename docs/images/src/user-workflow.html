@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Daily workflow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 2736px; height: 912px; overflow: hidden;
+    background: #0d1526; color: #e8eefc;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .wrap { width: 2736px; height: 912px; padding: 56px 96px 48px; }
+  header { margin-bottom: 44px; }
+  header .eyebrow { font-size: 15px; font-weight: bold; letter-spacing: 2px; color: #2dd4bf; margin-bottom: 10px; }
+  header h1 { font-size: 44px; font-weight: bold; margin-bottom: 10px; }
+  header p { font-size: 21px; color: #93a4c4; }
+  .flow { display: flex; align-items: stretch; }
+  .card {
+    width: 460px; flex: none; background: #16213a; border: 1px solid #2a3a5c;
+    border-radius: 14px; padding: 28px 28px 24px;
+  }
+  .card .step {
+    display: inline-block; font-size: 14px; font-weight: bold; letter-spacing: 1px;
+    color: #2dd4bf; background: #0f2a26; border: 1px solid #1f6f63;
+    padding: 5px 12px; border-radius: 20px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 30px; font-weight: bold; margin-bottom: 12px; }
+  .card p { font-size: 20px; line-height: 1.55; color: #93a4c4; margin-bottom: 18px; }
+  .card .detail {
+    font-size: 17px; color: #c7d3ea; border-top: 1px solid #2a3a5c; padding-top: 14px;
+  }
+  .card .detail b { color: #2dd4bf; }
+  .arrow {
+    width: 61px; flex: none; display: flex; align-items: center; justify-content: center;
+    font-size: 44px; font-weight: bold; color: #2dd4bf;
+  }
+  .loop {
+    margin-top: 44px; border: 1.5px dashed #2dd4bf; border-radius: 12px;
+    background: #0f2a26; padding: 24px 28px;
+    font-size: 20px; line-height: 1.55; color: #c7d3ea;
+  }
+  .loop b { color: #2dd4bf; }
+  .facts { display: flex; gap: 24px; margin-top: 36px; }
+  .fact {
+    flex: 1; background: #16213a; border: 1px solid #2a3a5c;
+    border-radius: 12px; padding: 20px 26px;
+  }
+  .fact .k { font-size: 15px; font-weight: bold; letter-spacing: 1px; color: #2dd4bf; margin-bottom: 6px; }
+  .fact .v { font-size: 19px; color: #c7d3ea; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">DAILY WORKFLOW</div>
+    <h1>Find, save, draft, review, close</h1>
+    <p>Five steps. A human approves every draft. Nothing is ever sent to LinkedIn automatically.</p>
+  </header>
+  <div class="flow">
+    <div class="card">
+      <span class="step">STEP 1</span>
+      <h2>Find</h2>
+      <p>Open a LinkedIn profile, post, company page, or conversation. The extension side panel detects the page type and reads only the visible text.</p>
+      <div class="detail"><b>Where:</b> extension side panel</div>
+    </div>
+    <div class="arrow">&#8594;</div>
+    <div class="card">
+      <span class="step">STEP 2</span>
+      <h2>Save</h2>
+      <p>Save the person as a prospect with company, title, industry, and a relevance score with a written reason. The prospect lands in stage Target.</p>
+      <div class="detail"><b>Stage:</b> Target, weight 2</div>
+    </div>
+    <div class="arrow">&#8594;</div>
+    <div class="card">
+      <span class="step">STEP 3</span>
+      <h2>Draft</h2>
+      <p>Ask for a connection message, comment, or follow-up. The strategist builds the prompt from real database evidence only and the model drafts it.</p>
+      <div class="detail"><b>AI:</b> free models only, 12 model chain</div>
+    </div>
+    <div class="arrow">&#8594;</div>
+    <div class="card">
+      <span class="step">STEP 4</span>
+      <h2>Review</h2>
+      <p>The draft sits in the approval queue as pending. You read it, then approve or reject it. Approving writes an audit log row.</p>
+      <div class="detail"><b>Gate:</b> kill switch blocks approval</div>
+    </div>
+    <div class="arrow">&#8594;</div>
+    <div class="card">
+      <span class="step">STEP 5</span>
+      <h2>Close</h2>
+      <p>Move the prospect through the pipeline as the relationship grows. Record interactions and notes, and set a follow-up date.</p>
+      <div class="detail"><b>End:</b> Won, weight 1. Lost, weight 0.</div>
+    </div>
+  </div>
+  <div class="loop"><b>Loop:</b> a rejected draft returns to Draft with feedback. An approved draft is copied by hand. Nothing is ever sent to LinkedIn automatically.</div>
+  <div class="facts">
+    <div class="fact"><div class="k">RUNS ON</div><div class="v">Localhost, port 3000. Node 20, Express 5.</div></div>
+    <div class="fact"><div class="k">STORED IN</div><div class="v">SQLite, backend/data/app.db, 13 tables.</div></div>
+    <div class="fact"><div class="k">PROTECTED BY</div><div class="v">Approval queue, kill switch, audit log.</div></div>
+  </div>
+</div>
+</body>
+</html>

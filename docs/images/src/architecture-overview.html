@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System architecture overview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1920px; height: 1280px; overflow: hidden;
+    background: #0d1526; color: #e8eefc;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .wrap { position: relative; width: 1920px; height: 1280px; }
+  header { position: absolute; top: 44px; left: 48px; right: 48px; }
+  header .eyebrow { font-size: 14px; font-weight: bold; letter-spacing: 2px; color: #2dd4bf; margin-bottom: 10px; }
+  header h1 { font-size: 40px; font-weight: bold; margin-bottom: 10px; }
+  header p { font-size: 20px; color: #93a4c4; }
+  .cols { position: absolute; top: 170px; left: 48px; right: 48px; height: 940px; display: flex; gap: 60px; }
+  svg.wires { position: absolute; left: 0; top: 0; z-index: 0; }
+  .col { flex: none; display: flex; flex-direction: column; position: relative; z-index: 1; }
+  .col.c1 { width: 540px; }
+  .col.c2 { width: 620px; }
+  .col.c3 { width: 544px; }
+  .label { font-size: 13px; font-weight: bold; letter-spacing: 1px; color: #93a4c4; margin-bottom: 10px; }
+  .box {
+    flex: 1; background: #16213a; border: 1px solid #2a3a5c; border-left: 5px solid #5b8def;
+    border-radius: 12px; padding: 20px 24px; margin-bottom: 20px;
+  }
+  .box:last-child { margin-bottom: 0; }
+  .box.teal { border-left-color: #2dd4bf; }
+  .box.red { border-left-color: #f87171; }
+  .box h3 { font-size: 21px; font-weight: bold; margin-bottom: 10px; }
+  .box p { font-size: 15px; line-height: 1.5; color: #93a4c4; }
+  .box p b { color: #c7d3ea; font-weight: bold; }
+  footer { position: absolute; top: 1140px; left: 48px; right: 48px; }
+  footer p { font-size: 17px; line-height: 1.6; color: #93a4c4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">SYSTEM ARCHITECTURE</div>
+    <h1>System architecture</h1>
+    <p>Local first. The dashboard and the extension talk only to the local backend. Nothing talks to LinkedIn.</p>
+  </header>
+  <div class="cols">
+    <svg class="wires" width="1824" height="940" viewBox="0 0 1824 940">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2dd4bf"/></marker>
+      </defs>
+      <path d="M 540 249 H 600" stroke="#2dd4bf" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+      <path d="M 540 716 H 570 V 200 H 600" stroke="#2dd4bf" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+      <path d="M 910 239 V 259" stroke="#2dd4bf" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+      <path d="M 910 472 V 492" stroke="#2dd4bf" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+      <path d="M 910 705 V 725" stroke="#2dd4bf" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+      <path d="M 1220 132 H 1280" stroke="#2dd4bf" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+      <path d="M 1220 365 H 1250 V 249 H 1280" stroke="#2dd4bf" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+      <path d="M 1220 598 H 1280" stroke="#2dd4bf" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+    </svg>
+    <div class="col c1">
+      <div class="label">ON YOUR COMPUTER</div>
+      <div class="box">
+        <h3>Dashboard</h3>
+        <p>Single page app<br>index.html, styles.css<br>app.js built to app.min.js<br><b>13 pages:</b> Overview, Strategist, Audience, Prospects, CRM, Conversations, Content Studio, Profile Optimizer, Extension, Strategy and Goals, Analytics, Model Configuration, Settings</p>
+      </div>
+      <div class="box">
+        <h3>Chrome extension</h3>
+        <p>Manifest V3, v0.2.0<br>Side panel and popup<br>Reads visible page text only<br><b>Actions:</b> Analyze Profile, Explain Relevance, Draft Connection Message, Generate Comment, Summarize Conversation, Suggest Follow-up, Save Prospect, Add Relationship Notes</p>
+      </div>
+    </div>
+    <div class="col c2">
+      <div class="label">LOCAL BACKEND: NODE 20, EXPRESS 5, PORT 3000</div>
+      <div class="box teal">
+        <h3>REST API</h3>
+        <p>Auth on every endpoint<br>Bearer token, scrypt password<br>Static dashboard, SPA fallback<br><b>Routes:</b> /api/prospects, /api/strategist, /api/drafts, /api/analytics, /api/goals, /api/memory, /api/config</p>
+      </div>
+      <div class="box teal">
+        <h3>Chief Growth Strategist</h3>
+        <p>Classifies the request<br>Gathers real DB evidence<br>Stores recommendations<br><b>Classes:</b> audience, relationship, content, outreach, profile, general</p>
+      </div>
+      <div class="box teal">
+        <h3>OpenRouter proxy</h3>
+        <p>Key stays server side only<br><b>Free models only, 12 model chain</b><br>Structured JSON validation<br>Connection test validates the key, then loads the live model list</p>
+      </div>
+      <div class="box red">
+        <h3>Compliance: kill switch</h3>
+        <p>Blocks AI and draft approval<br><b>403 kill_switch_on</b><br>Every action in the audit log<br>Popup kill switch disables all<br>extension actions immediately</p>
+      </div>
+    </div>
+    <div class="col c3">
+      <div class="label">DATA AND AI</div>
+      <div class="box">
+        <h3>SQLite</h3>
+        <p>backend/data/app.db<br><b>13 tables, WAL mode</b><br>users, sessions, prospects, interactions, notes, goals, memory_items, drafts, recommendations, audit_log, model_config, error_log, app_settings</p>
+      </div>
+      <div class="box">
+        <h3>OpenRouter API</h3>
+        <p>Chat completions endpoint<br>Key validated on /auth/key<br>429, timeout, or 5xx tries the next free model<br><b>Free tier:</b> 50 free-model requests per day<br><b>425 models listed,</b> 12 free</p>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <p>The OpenRouter API key lives in backend/.env (mode 0600) or the OPENROUTER_API_KEY environment variable. It is never logged and never returned to a client.</p>
+    <p>The app has no LinkedIn API access and imports no LinkedIn data. All numbers are records entered in the app.</p>
+  </footer>
+</div>
+</body>
+</html>

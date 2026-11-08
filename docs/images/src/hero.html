@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LinkedIn Growth Agent hero</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1600px; height: 533px; overflow: hidden;
+    background: #0d1526; color: #e8eefc;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .wrap { display: flex; gap: 56px; height: 533px; padding: 42px 56px; }
+  .left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+  .mark {
+    width: 56px; height: 56px; border-radius: 12px; flex: none;
+    background: linear-gradient(135deg, #5b8def, #2dd4bf);
+    color: #ffffff; font-size: 26px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-name { font-size: 21px; font-weight: bold; line-height: 1.25; }
+  .brand-sub { font-size: 15px; color: #93a4c4; }
+  h1 { font-size: 42px; line-height: 1.15; font-weight: bold; margin-bottom: 16px; }
+  h1 .teal { color: #2dd4bf; }
+  .desc { font-size: 18px; line-height: 1.5; color: #93a4c4; max-width: 640px; margin-bottom: 22px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .badge {
+    font-size: 13px; font-weight: bold; color: #c7d3ea;
+    border: 1px solid #2a3a5c; background: #16213a;
+    padding: 6px 12px; border-radius: 20px;
+  }
+  .badge.teal { color: #2dd4bf; border-color: #1f6f63; }
+  .note { font-size: 15px; color: #7e8fb0; }
+  .note b { color: #2dd4bf; font-weight: bold; }
+  .right { width: 640px; flex: none; display: flex; align-items: center; }
+  .panel {
+    width: 640px; background: #101a30; border: 1px solid #2a3a5c;
+    border-radius: 14px; padding: 22px 24px;
+  }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .panel-head h2 { font-size: 20px; font-weight: bold; }
+  .panel-head span { font-size: 13px; color: #93a4c4; }
+  .stats { display: flex; gap: 10px; margin-bottom: 18px; }
+  .stat {
+    flex: 1; background: #16213a; border: 1px solid #2a3a5c;
+    border-radius: 10px; padding: 12px 10px 10px; text-align: center;
+  }
+  .stat .num { font-size: 28px; font-weight: bold; line-height: 1.1; }
+  .stat .lbl { font-size: 11px; color: #93a4c4; line-height: 1.3; margin-top: 4px; }
+  .stat .bar { height: 3px; border-radius: 2px; margin-bottom: 8px; }
+  .lower { display: flex; gap: 14px; align-items: stretch; }
+  .donut-box {
+    width: 150px; flex: none; background: #16213a; border: 1px solid #2a3a5c;
+    border-radius: 10px; padding: 12px; display: flex; gap: 12px; align-items: center;
+  }
+  .donut-box .cap { font-size: 12px; color: #93a4c4; line-height: 1.4; }
+  .donut-box .cap b { color: #e8eefc; font-size: 13px; }
+  .prospect {
+    flex: 1; background: #16213a; border: 1px solid #2a3a5c;
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .prospect .row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%; flex: none;
+    background: #5b8def; color: #fff; font-size: 15px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .prospect .name { font-size: 16px; font-weight: bold; }
+  .prospect .meta { font-size: 12.5px; color: #93a4c4; margin-top: 2px; }
+  .pill {
+    margin-left: auto; font-size: 12px; font-weight: bold; color: #2dd4bf;
+    border: 1px solid #1f6f63; background: #0f2a26; padding: 4px 10px; border-radius: 20px;
+  }
+  .prospect .empty { font-size: 13px; color: #93a4c4; border-top: 1px dashed #2a3a5c; padding-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="left">
+    <div class="brand">
+      <div class="mark">LI</div>
+      <div>
+        <div class="brand-name">LinkedIn Intelligence</div>
+        <div class="brand-sub">Growth Agent</div>
+      </div>
+    </div>
+    <h1>Grow your network<br>with <span class="teal">evidence, not guesswork.</span></h1>
+    <p class="desc">An evidence-based AI strategist, prospect CRM, content studio, and Chrome extension for growing a professional network on LinkedIn.</p>
+    <div class="badges">
+      <span class="badge">MIT</span>
+      <span class="badge">Node 20+</span>
+      <span class="badge">Express 5</span>
+      <span class="badge">SQLite</span>
+      <span class="badge">Manifest V3</span>
+      <span class="badge teal">Free models only</span>
+    </div>
+    <p class="note">Local first. No LinkedIn API. <b>Every draft needs your approval.</b></p>
+  </div>
+  <div class="right">
+    <div class="panel">
+      <div class="panel-head"><h2>Overview</h2><span>App records only</span></div>
+      <div class="stats">
+        <div class="stat"><div class="bar" style="background:#5b8def"></div><div class="num">1</div><div class="lbl">Prospects saved</div></div>
+        <div class="stat"><div class="bar" style="background:#f5a623"></div><div class="num">0</div><div class="lbl">Follow-ups due</div></div>
+        <div class="stat"><div class="bar" style="background:#8b7cf6"></div><div class="num">0</div><div class="lbl">Drafts created</div></div>
+        <div class="stat"><div class="bar" style="background:#2dd4bf"></div><div class="num">0</div><div class="lbl">Actions approved</div></div>
+        <div class="stat"><div class="bar" style="background:#2dd4bf"></div><div class="num">0</div><div class="lbl">Recommendations pending</div></div>
+      </div>
+      <div class="lower">
+        <div class="donut-box">
+          <svg width="86" height="86" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#2a3a5c" stroke-width="11"/>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#2dd4bf" stroke-width="11" stroke-dasharray="264" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+            <text x="50" y="48" text-anchor="middle" fill="#e8eefc" font-size="22" font-weight="bold">1</text>
+            <text x="50" y="66" text-anchor="middle" fill="#93a4c4" font-size="10">prospect</text>
+          </svg>
+          <div class="cap"><b>Target 100%</b><br>Pipeline by stage</div>
+        </div>
+        <div class="prospect">
+          <div class="row">
+            <div class="avatar">EX</div>
+            <div>
+              <div class="name">EXAMPLE, delete me</div>
+              <div class="meta">Seeded example prospect</div>
+            </div>
+            <span class="pill">Target</span>
+          </div>
+          <div class="empty">Follow-up reminders: no data yet. No follow-ups are due.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

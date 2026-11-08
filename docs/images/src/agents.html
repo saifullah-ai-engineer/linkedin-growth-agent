@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Six specialized agents</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 800px; overflow: hidden;
+    background: #0d1526; color: #e8eefc;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .wrap { position: relative; width: 1200px; height: 800px; padding: 36px 48px; }
+  header { margin-bottom: 8px; }
+  header .eyebrow { font-size: 13px; font-weight: bold; letter-spacing: 2px; color: #2dd4bf; margin-bottom: 8px; }
+  header h1 { font-size: 34px; font-weight: bold; margin-bottom: 8px; }
+  header p { font-size: 17px; color: #93a4c4; }
+  svg.wires { position: absolute; left: 0; top: 0; z-index: 0; }
+  .card {
+    position: absolute; z-index: 1;
+    width: 320px; background: #16213a; border: 1px solid #2a3a5c;
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .card .top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .num {
+    width: 26px; height: 26px; border-radius: 7px; flex: none;
+    background: #0f2a26; color: #2dd4bf; font-size: 13px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card h2 { font-size: 18px; font-weight: bold; }
+  .card p { font-size: 13.5px; line-height: 1.5; color: #93a4c4; }
+  .center {
+    position: absolute; z-index: 1; left: 360px; top: 356px; width: 480px;
+    background: #16213a; border: 2px solid #2dd4bf; border-radius: 14px;
+    padding: 22px 26px;
+  }
+  .center .top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .center .num { width: 30px; height: 30px; font-size: 15px; }
+  .center h2 { font-size: 21px; font-weight: bold; }
+  .center .tag { font-size: 12px; font-weight: bold; color: #2dd4bf; }
+  .center p { font-size: 14.5px; line-height: 1.55; color: #c7d3ea; }
+  .foot {
+    position: absolute; left: 48px; right: 48px; bottom: 28px;
+    font-size: 14px; color: #7e8fb0; text-align: center;
+  }
+  .foot b { color: #2dd4bf; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <svg class="wires" width="1200" height="800" viewBox="0 0 1200 800">
+    <line x1="600" y1="356" x2="208" y2="246" stroke="#2a3a5c" stroke-width="2"/>
+    <line x1="600" y1="356" x2="600" y2="246" stroke="#2a3a5c" stroke-width="2"/>
+    <line x1="600" y1="356" x2="992" y2="246" stroke="#2a3a5c" stroke-width="2"/>
+    <line x1="600" y1="486" x2="360" y2="592" stroke="#2a3a5c" stroke-width="2"/>
+    <line x1="600" y1="486" x2="840" y2="592" stroke="#2a3a5c" stroke-width="2"/>
+    <circle cx="208" cy="246" r="4" fill="#2dd4bf"/>
+    <circle cx="600" cy="246" r="4" fill="#2dd4bf"/>
+    <circle cx="992" cy="246" r="4" fill="#2dd4bf"/>
+    <circle cx="360" cy="592" r="4" fill="#2dd4bf"/>
+    <circle cx="840" cy="592" r="4" fill="#2dd4bf"/>
+  </svg>
+  <header>
+    <div class="eyebrow">SIX SPECIALIZED AGENTS</div>
+    <h1>One strategist, five specialists</h1>
+    <p>Each agent builds its prompt section from real database evidence only. Nothing is invented.</p>
+  </header>
+  <div class="card" style="left:48px; top:134px;">
+    <div class="top"><div class="num">02</div><h2>Audience Intelligence</h2></div>
+    <p>Builds the prompt section from real prospects and goals. Reports only what the database holds.</p>
+  </div>
+  <div class="card" style="left:440px; top:134px;">
+    <div class="top"><div class="num">03</div><h2>Relationship Intelligence</h2></div>
+    <p>Builds the prompt section from stages, interactions, notes, and follow-up dates. No history invented.</p>
+  </div>
+  <div class="card" style="left:832px; top:134px;">
+    <div class="top"><div class="num">04</div><h2>Content Intelligence</h2></div>
+    <p>Builds the prompt section from goals, memory items, and existing drafts, so new content stays consistent.</p>
+  </div>
+  <div class="center">
+    <div class="top"><div class="num">01</div><h2>Chief Growth Strategist</h2><span class="tag">ORCHESTRATOR</span></div>
+    <p>Classifies each request, gathers real evidence from goals, memory, prospects, and interactions, calls the AI proxy, and stores the recommendation with its evidence.</p>
+  </div>
+  <div class="card" style="left:200px; top:592px;">
+    <div class="top"><div class="num">05</div><h2>Outreach Intelligence</h2></div>
+    <p>Builds the prompt section from Target stage prospects, their notes, and recorded interactions.</p>
+  </div>
+  <div class="card" style="left:680px; top:592px;">
+    <div class="top"><div class="num">06</div><h2>Profile Optimization</h2></div>
+    <p>Builds the prompt section from saved identity facts only. Never invents profile details.</p>
+  </div>
+  <div class="foot">All six agents run through the server-side OpenRouter proxy. <b>Free models only</b>, 12 model fallback chain.</div>
+</div>
+</body>
+</html>
