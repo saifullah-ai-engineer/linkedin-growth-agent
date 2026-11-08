@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" font-family="Arial, Helvetica, sans-serif" role="img" aria-label="Repository map of the LinkedIn Growth Agent">
+<rect width="1200" height="900" fill="#0d1526"/>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2dd4bf"/></marker>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5b8def"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f87171"/></marker>
+</defs>
+<text x="40" y="48" fill="#e8eefc" font-size="24" font-weight="bold">Repository map</text>
+<text x="40" y="74" fill="#93a4c4" font-size="14">Every box is a real folder or file. Data, .env, and node_modules are gitignored and never committed.</text>
+<rect x="450" y="100" width="300" height="70" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="450" y="100" width="5" height="70" rx="2" fill="#2dd4bf"/>
+<text x="468" y="124" fill="#e8eefc" font-size="16" font-weight="bold">linkedin-growth-agent/</text>
+<text x="468" y="146" fill="#93a4c4" font-size="12.5">Root: README, LICENSE, .gitignore</text>
+<rect x="40" y="210" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="40" y="210" width="5" height="110" rx="2" fill="#5b8def"/>
+<text x="58" y="234" fill="#e8eefc" font-size="15" font-weight="bold">.github/</text>
+<text x="58" y="256" fill="#93a4c4" font-size="12.5">workflows/ci.yml</text>
+<text x="58" y="275" fill="#93a4c4" font-size="12.5">npm ci, build, node --check</text>
+<text x="58" y="294" fill="#93a4c4" font-size="12.5">Minified bundle diff check</text>
+<rect x="320" y="210" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="320" y="210" width="5" height="110" rx="2" fill="#2dd4bf"/>
+<text x="338" y="234" fill="#e8eefc" font-size="15" font-weight="bold">backend/</text>
+<text x="338" y="256" fill="#93a4c4" font-size="12.5">Node 20, Express 5</text>
+<text x="338" y="275" fill="#93a4c4" font-size="12.5">Local server on port 3000</text>
+<text x="338" y="294" fill="#93a4c4" font-size="12.5">SQLite, no native modules</text>
+<rect x="600" y="210" width="250" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="600" y="210" width="5" height="110" rx="2" fill="#5b8def"/>
+<text x="618" y="234" fill="#e8eefc" font-size="15" font-weight="bold">extension/</text>
+<text x="618" y="256" fill="#93a4c4" font-size="12.5">Manifest V3, v0.2.0</text>
+<text x="618" y="275" fill="#93a4c4" font-size="12.5">Side panel and popup</text>
+<text x="618" y="294" fill="#93a4c4" font-size="12.5">LinkedIn pages only</text>
+<rect x="880" y="210" width="280" height="110" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="880" y="210" width="5" height="110" rx="2" fill="#5b8def"/>
+<text x="898" y="234" fill="#e8eefc" font-size="15" font-weight="bold">docs/</text>
+<text x="898" y="256" fill="#93a4c4" font-size="12.5">images/: AI illustrations</text>
+<text x="898" y="275" fill="#93a4c4" font-size="12.5">screenshots/: real app shots</text>
+<text x="898" y="294" fill="#93a4c4" font-size="12.5">architecture/ and</text>
+<text x="898" y="313" fill="#93a4c4" font-size="12.5">repository-structure/</text>
+<line x1="600" y1="170" x2="165" y2="206" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="600" y1="170" x2="445" y2="206" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="600" y1="170" x2="725" y2="206" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="600" y1="170" x2="1020" y2="206" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="320" y="350" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="320" y="350" width="5" height="64" rx="2" fill="#2dd4bf"/>
+<text x="338" y="374" fill="#e8eefc" font-size="15" font-weight="bold">server.js</text>
+<text x="338" y="396" fill="#93a4c4" font-size="12.5">All API routes, static dashboard</text>
+<rect x="320" y="430" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="320" y="430" width="5" height="64" rx="2" fill="#2dd4bf"/>
+<text x="338" y="454" fill="#e8eefc" font-size="15" font-weight="bold">db.js</text>
+<text x="338" y="476" fill="#93a4c4" font-size="12.5">Schema, seed data, audit log</text>
+<rect x="320" y="510" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="320" y="510" width="5" height="64" rx="2" fill="#2dd4bf"/>
+<text x="338" y="534" fill="#e8eefc" font-size="15" font-weight="bold">auth.js</text>
+<text x="338" y="556" fill="#93a4c4" font-size="12.5">scrypt hashing, bearer tokens</text>
+<rect x="320" y="590" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="320" y="590" width="5" height="64" rx="2" fill="#2dd4bf"/>
+<text x="338" y="614" fill="#e8eefc" font-size="15" font-weight="bold">openrouter.js</text>
+<text x="338" y="636" fill="#93a4c4" font-size="12.5">Key handling, free model chain</text>
+<rect x="320" y="670" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="320" y="670" width="5" height="64" rx="2" fill="#2dd4bf"/>
+<text x="338" y="694" fill="#e8eefc" font-size="15" font-weight="bold">agents/</text>
+<text x="338" y="716" fill="#93a4c4" font-size="12.5">Six agent modules</text>
+<rect x="320" y="750" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="320" y="750" width="5" height="64" rx="2" fill="#2dd4bf"/>
+<text x="338" y="774" fill="#e8eefc" font-size="15" font-weight="bold">public/</text>
+<text x="338" y="796" fill="#93a4c4" font-size="12.5">Dashboard: index, styles, app.js</text>
+<line x1="445" y1="320" x2="445" y2="346" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="445" y1="414" x2="445" y2="430" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="445" y1="494" x2="445" y2="510" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="445" y1="574" x2="445" y2="590" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="445" y1="654" x2="445" y2="670" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="445" y1="734" x2="445" y2="750" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="600" y="350" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="600" y="350" width="5" height="64" rx="2" fill="#5b8def"/>
+<text x="618" y="374" fill="#e8eefc" font-size="15" font-weight="bold">manifest.json</text>
+<text x="618" y="396" fill="#93a4c4" font-size="12.5">Permissions and host access</text>
+<rect x="600" y="430" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="600" y="430" width="5" height="64" rx="2" fill="#5b8def"/>
+<text x="618" y="454" fill="#e8eefc" font-size="15" font-weight="bold">background.js</text>
+<text x="618" y="476" fill="#93a4c4" font-size="12.5">Service worker, routes messages</text>
+<rect x="600" y="510" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="600" y="510" width="5" height="64" rx="2" fill="#5b8def"/>
+<text x="618" y="534" fill="#e8eefc" font-size="15" font-weight="bold">content.js</text>
+<text x="618" y="556" fill="#93a4c4" font-size="12.5">Page detection, visible text</text>
+<rect x="600" y="590" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="600" y="590" width="5" height="64" rx="2" fill="#5b8def"/>
+<text x="618" y="614" fill="#e8eefc" font-size="15" font-weight="bold">popup.js</text>
+<text x="618" y="636" fill="#93a4c4" font-size="12.5">Settings, kill switch, token</text>
+<rect x="600" y="670" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="600" y="670" width="5" height="64" rx="2" fill="#5b8def"/>
+<text x="618" y="694" fill="#e8eefc" font-size="15" font-weight="bold">sidepanel.js</text>
+<text x="618" y="716" fill="#93a4c4" font-size="12.5">Drafting panel actions</text>
+<rect x="600" y="750" width="250" height="64" rx="10" fill="#16213a" stroke="#2a3a5c"/>
+<rect x="600" y="750" width="5" height="64" rx="2" fill="#5b8def"/>
+<text x="618" y="774" fill="#e8eefc" font-size="15" font-weight="bold">README.md</text>
+<text x="618" y="796" fill="#93a4c4" font-size="12.5">Extension install guide</text>
+<line x1="725" y1="320" x2="725" y2="346" stroke="#5b8def" stroke-width="2" marker-end="url(#arr-blue)"/>
+<line x1="725" y1="414" x2="725" y2="430" stroke="#5b8def" stroke-width="2" marker-end="url(#arr-blue)"/>
+<line x1="725" y1="494" x2="725" y2="510" stroke="#5b8def" stroke-width="2" marker-end="url(#arr-blue)"/>
+<line x1="725" y1="574" x2="725" y2="590" stroke="#5b8def" stroke-width="2" marker-end="url(#arr-blue)"/>
+<line x1="725" y1="654" x2="725" y2="670" stroke="#5b8def" stroke-width="2" marker-end="url(#arr-blue)"/>
+<line x1="725" y1="734" x2="725" y2="750" stroke="#5b8def" stroke-width="2" marker-end="url(#arr-blue)"/>
+<text x="40" y="856" fill="#93a4c4" font-size="14">backend/data/app.db is created on first run and gitignored. backend/.env holds the OpenRouter key and is gitignored.</text>
+<text x="40" y="880" fill="#93a4c4" font-size="14">Full file list with one line purposes: docs/repository-structure/directory-tree.txt</text>
+</svg>

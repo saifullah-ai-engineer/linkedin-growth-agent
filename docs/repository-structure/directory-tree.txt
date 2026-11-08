@@ -1,0 +1,81 @@
+linkedin-growth-agent/
+  README.md                 Project README: setup, features, architecture, honest limits
+  LICENSE                   MIT license
+  .gitignore                Ignores .env, node_modules, *.db, backend/data/
+  LOCKED-STATE.md           Frozen reference of the locked state, 2026-11-09 (local record)
+
+  .github/
+    workflows/
+      ci.yml                GitHub Actions: npm ci, build, node --check, minified bundle diff
+
+  backend/                  Node 20, Express 5 backend. Local server on port 3000.
+    server.js               All API routes, compression, static dashboard, SPA fallback
+    db.js                   node:sqlite schema (13 tables), seed data, audit and error logs
+    auth.js                 scrypt password hashing, bearer token sessions, requireAuth
+    openrouter.js           OpenRouter client: key handling, model list, 12 model free fallback chain
+    package.json            Dependencies: express, compression. Dev: terser. Scripts: start, build
+    package-lock.json       Pinned dependency versions
+    .env.example            Key name only: OPENROUTER_API_KEY, no value
+    .gitignore              Ignores node_modules, .env, data/app.db
+    README.md               Backend guide: start, setup steps, endpoints, seed data
+    agents/                 Six agent modules. Strategist orchestrates, five build prompt sections.
+      strategist.js         classifyRequest, gatherEvidence, buildSystemPrompt, runStrategist
+      profile.js            Prompt section from saved identity facts only
+      audience.js           Prompt section from real prospects and goals
+      relationship.js       Prompt section from stages, interactions, notes, follow-ups
+      content.js            Prompt section from goals, memory items, existing drafts
+      outreach.js           Prompt section from Target stage prospects and notes
+    public/                 Dashboard frontend, served by Express
+      index.html            Single page app: 13 pages, grouped sidebar, widget shells
+      styles.css            Dark navy design system, contrast-safe colors, focus rings
+      app.js                All page logic and API calls. Source of truth.
+      app.min.js            Terser build of app.js, loaded with defer
+      app.min.js.map        Source map for the minified bundle
+    data/                   Created on first run. Gitignored, never committed.
+      app.db                SQLite database: all app records
+
+  extension/                Chrome extension, Manifest V3, v0.2.0
+    manifest.json           Permissions: activeTab, storage, sidePanel. Hosts: linkedin.com, localhost:3000
+    background.js           Service worker: routes messages, stores drafts, calls the backend
+    content.js              Detects page type, reads only visible page text
+    popup.html              Popup layout
+    popup.js                Backend URL and token settings, kill switch, test connection
+    sidepanel.html          Side panel layout
+    sidepanel.js            Analyze, draft, save prospect, relationship notes
+    README.md               Extension install guide and compliance limits
+
+  docs/
+    images/                 AI-generated illustrations and the rendered repo diagram
+      hero.png              AI hero banner (illustration, not a screenshot)
+      agents.png            AI illustration of the six agents
+      architecture-overview.png
+                            AI illustration of the system: dashboard, server, database, cloud
+      user-workflow.png     AI illustration of the five step workflow: find, save, draft, review, close
+      repo-structure.png    Rendered diagram of the real repo layout
+    screenshots/            Real screenshots of the running dashboard, 1440x900
+      overview.png          Overview: stat cards, pipeline donut, recent activity
+      strategist.png        AI Strategist page
+      prospects.png         Prospects CRM table
+      content-studio.png    Content Studio draft generators
+      model-config.png      Model Configuration: key, model pickers, usage log
+      analytics.png         Analytics: per-day and by-stage charts, app records only
+    architecture/           Technical diagrams: Mermaid source plus rendered SVG
+      system-architecture.mmd
+      system-architecture.svg
+      component-architecture.mmd
+      component-architecture.svg
+      prospect-lifecycle.mmd
+      prospect-lifecycle.svg
+      draft-approval-flow.mmd
+      draft-approval-flow.svg
+    repository-structure/
+      directory-tree.txt    This file
+      repository-map.svg    Graphical map of the folders above
+    video/                  Promo video work in flight, not part of the app
+      script.txt            Narration script
+      render_chunks.sh      Render helper
+      chunks/               Voice chunks
+      tmp/                  Render scratch files
+
+Gitignored and never committed: backend/data/, backend/.env, node_modules/,
+*.db, *.db-shm, *.db-wal, .venv/, __pycache__/, .DS_Store.
