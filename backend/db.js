@@ -131,6 +131,10 @@ ensureColumn('goals', 'deadline', 'TEXT');
 ensureColumn('goals', 'status', "TEXT NOT NULL DEFAULT 'Active'");
 ensureColumn('goals', 'description', 'TEXT');
 ensureColumn('interactions', 'happened_on', 'TEXT');
+ensureColumn('sessions', 'expires_at', 'TEXT');
+// Sessions created before expiry existed have no expires_at. Give them a
+// 24 hour expiry from now so old tokens do not live forever.
+db.prepare("UPDATE sessions SET expires_at = datetime('now', '+24 hours') WHERE expires_at IS NULL").run();
 
 function rowCount(table) {
   return db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get().c;
@@ -139,6 +143,7 @@ function rowCount(table) {
 function audit(action, detail) {
   try {
     db.prepare('INSERT INTO audit_log (action, detail) VALUES (?, ?)').run(action, detail || '');
+    pruneLog('audit_log', 1000);
   } catch (err) {
     console.error('audit write failed', err.message);
   }
@@ -147,8 +152,22 @@ function audit(action, detail) {
 function logError(source, message) {
   try {
     db.prepare('INSERT INTO error_log (source, message) VALUES (?, ?)').run(source, String(message).slice(0, 2000));
+    pruneLog('error_log', 500);
   } catch (err) {
     console.error('error log write failed', err.message);
+  }
+}
+
+// Keep the logs bounded: once a log passes its limit, drop the oldest rows.
+// The tables grow without bound otherwise, one row per audited action.
+function pruneLog(table, limit) {
+  try {
+    const count = db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get().c;
+    if (count > limit) {
+      db.prepare(`DELETE FROM ${table} WHERE id NOT IN (SELECT id FROM ${table} ORDER BY id DESC LIMIT ?)`).run(limit);
+    }
+  } catch (err) {
+    console.error('log prune failed', err.message);
   }
 }
 

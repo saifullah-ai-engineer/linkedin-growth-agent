@@ -42,6 +42,9 @@ function saveKey(key) {
     next = text ? `${text.replace(/\n$/, '')}\n${line}\n` : `${line}\n`;
   }
   fs.writeFileSync(ENV_PATH, next, { mode: 0o600 });
+  // writeFileSync only sets the mode when the file is created. Tighten it
+  // on every save so a key is never left in a world-readable file.
+  try { fs.chmodSync(ENV_PATH, 0o600); } catch (err) { /* best effort on non-POSIX filesystems */ }
   process.env.OPENROUTER_API_KEY = key;
   db.prepare('UPDATE model_config SET key_present = 1 WHERE id = 1').run();
 }

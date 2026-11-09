@@ -13,6 +13,25 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '1mb' }));
 app.use(compression());
 
+// Security headers on every response, including static files. The dashboard
+// loads one local script and one local stylesheet and no external resource,
+// so the content security policy can stay strict: same origin only, no
+// inline scripts or styles, no frames, no plugins. No CORS headers are
+// emitted anywhere, so a page on another origin cannot read API responses,
+// and auth is a Bearer token rather than a cookie, so there is no ambient
+// credential for a cross-site request to reuse.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+  );
+  next();
+});
+
 // Serve a valid robots.txt so crawlers and audits do not parse the HTML
 // fallback. Access control for this local dashboard is the login, not
 // robots.txt, so the file allows crawling; nothing here is public.
@@ -75,11 +94,8 @@ function killSwitchOn(req, res) {
 app.get('/api/auth/status', (req, res) => {
   const setupNeeded = auth.getUserCount() === 0;
   const token = auth.getBearerToken(req);
-  let loggedIn = false;
-  if (token) {
-    const row = db.prepare('SELECT user_id FROM sessions WHERE token = ?').get(token);
-    loggedIn = !!row;
-  }
+  // An expired token counts as logged out; getSession deletes it.
+  const loggedIn = !!token && !!auth.getSession(token);
   res.json({ setupNeeded, loggedIn });
 });
 
@@ -88,15 +104,41 @@ app.post('/api/auth/setup', (req, res) => {
     return res.status(400).json({ error: 'setup_disabled', detail: 'Setup is already complete.' });
   }
   const password = req.body && req.body.password;
-  if (typeof password !== 'string' || password.length < 8) {
-    return res.status(400).json({ error: 'invalid_password', detail: 'Password must be at least 8 characters.' });
+  const weak = auth.validatePassword(password);
+  if (weak) {
+    return res.status(400).json({ error: 'invalid_password', detail: weak });
   }
   db.prepare('INSERT INTO users (password_hash) VALUES (?)').run(auth.hashPassword(password));
   const user = db.prepare('SELECT id FROM users ORDER BY id LIMIT 1').get();
-  const token = auth.createToken();
-  db.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(token, user.id);
+  const token = auth.createSession(user.id);
   audit('auth_setup', 'First user created.');
   res.json({ ok: true, token });
+});
+
+// Change password. The current password must be right, the new one must
+// pass the same strength rule as setup, and every other session is signed
+// out so a stolen token stops working as soon as the password changes.
+// The session that made the request stays valid.
+app.post('/api/auth/change-password', auth.requireAuth, async (req, res) => {
+  const body = req.body || {};
+  const current = body.current_password;
+  const next = body.new_password;
+  if (typeof current !== 'string' || typeof next !== 'string') {
+    return res.status(400).json({ error: 'invalid_request', detail: 'Current password and new password are required.' });
+  }
+  const user = db.prepare('SELECT * FROM users ORDER BY id LIMIT 1').get();
+  if (!user || !(await auth.verifyPasswordAsync(current, user.password_hash))) {
+    audit('password_change_failed', 'Change password rejected: wrong current password.');
+    return res.status(401).json({ error: 'invalid_credentials', detail: 'Current password is wrong.' });
+  }
+  const weak = auth.validatePassword(next);
+  if (weak) {
+    return res.status(400).json({ error: 'invalid_password', detail: weak });
+  }
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(auth.hashPassword(next), user.id);
+  db.prepare('DELETE FROM sessions WHERE token != ?').run(req.token);
+  audit('password_change', 'Password changed. Other sessions signed out.');
+  res.json({ ok: true });
 });
 
 // Failed-login throttle. Async scrypt keeps the event loop free, but 50
@@ -145,8 +187,7 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ error: 'invalid_credentials', detail: 'Wrong password.' });
   }
   loginFailures.delete(req.ip);
-  const token = auth.createToken();
-  db.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(token, user.id);
+  const token = auth.createSession(user.id);
   res.json({ token });
 });
 
@@ -219,17 +260,22 @@ app.get('/api/models', auth.requireAuth, async (req, res) => {
 
 // AI proxy
 app.post('/api/ai/chat', auth.requireAuth, async (req, res) => {
+  const message = (req.body && req.body.message) || '';
+  const task = (req.body && req.body.task) || '';
+  const pastedText = (req.body && (req.body.pastedText || req.body.context)) || '';
+  // Request shape is validated before the kill switch and the key check,
+  // so a bad request is a 400 whatever the app state is.
+  if (!message && !task && !pastedText) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'Provide a message, task, or pasted text.' });
+  }
+  if (aiInputTooLong(message, task, pastedText)) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'AI input must be at most 20000 characters in total.' });
+  }
   if (killSwitchOn(req, res)) return;
   // Fail fast when no key is configured. Building the evidence prompt
   // reads every prospect and takes over 100 ms at 10k prospects, so it
   // must not run for a request that is about to fail with not_configured.
   if (!openrouter.getKey()) return notConfigured(res);
-  const message = (req.body && req.body.message) || '';
-  const task = (req.body && req.body.task) || '';
-  const pastedText = (req.body && (req.body.pastedText || req.body.context)) || '';
-  if (!message && !task && !pastedText) {
-    return res.status(400).json({ error: 'invalid_request', detail: 'Provide a message, task, or pasted text.' });
-  }
   const classification = strategist.classifyRequest(`${message} ${task}`);
   const system = strategist.buildSystemPrompt(classification);
   const userText = [`Task: ${task || 'general advice'}`, `User message: ${message}`, pastedText ? `User pasted text: ${pastedText}` : ''].filter(Boolean).join('\n');
@@ -245,10 +291,16 @@ app.post('/api/ai/chat', auth.requireAuth, async (req, res) => {
 });
 
 app.post('/api/ai/draft', auth.requireAuth, async (req, res) => {
-  if (killSwitchOn(req, res)) return;
-  if (!openrouter.getKey()) return notConfigured(res);
   const type = (req.body && req.body.type) || 'general';
   const inputs = (req.body && req.body.inputs) || {};
+  if (!isBoundedString(type, 100)) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'Draft type must be text of at most 100 characters.' });
+  }
+  if (aiInputTooLong(JSON.stringify(inputs))) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'AI input must be at most 20000 characters in total.' });
+  }
+  if (killSwitchOn(req, res)) return;
+  if (!openrouter.getKey()) return notConfigured(res);
   const classification = strategist.classifyRequest(type);
   const system = [
     strategist.buildSystemPrompt(classification),
@@ -268,11 +320,14 @@ app.post('/api/ai/draft', auth.requireAuth, async (req, res) => {
 
 // Strategist and recommendations
 app.post('/api/strategist', auth.requireAuth, async (req, res) => {
-  if (killSwitchOn(req, res)) return;
-  if (!openrouter.getKey()) return notConfigured(res);
   const message = (req.body && req.body.message) || '';
   const pastedText = (req.body && (req.body.pastedText || req.body.context)) || '';
   if (!message) return res.status(400).json({ error: 'invalid_request', detail: 'Provide a message.' });
+  if (aiInputTooLong(message, pastedText)) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'AI input must be at most 20000 characters in total.' });
+  }
+  if (killSwitchOn(req, res)) return;
+  if (!openrouter.getKey()) return notConfigured(res);
   try {
     const result = await strategist.runStrategist(message, pastedText);
     res.json(result);
@@ -299,6 +354,41 @@ app.post('/api/recommendations/:id/feedback', auth.requireAuth, (req, res) => {
 
 // Prospects
 const PROSPECT_FIELDS = ['name', 'profile_url', 'company', 'title', 'industry', 'expertise', 'source', 'relevance_score', 'relevance_reason', 'opportunity', 'stage', 'notes', 'last_interaction', 'next_action', 'follow_up_date'];
+const PROSPECT_STAGES = ['Target', 'Research', 'Connection Requested', 'Connected', 'Conversation', 'Qualified Opportunity', 'Meeting', 'Proposal', 'Won', 'Lost'];
+const MAX_TEXT_LEN = 2000;
+
+// Every value that reaches the database is checked for type and length
+// first, so a wrong type or an oversized value is a 400, never a row with
+// junk in it.
+function isBoundedString(v, max) {
+  return typeof v === 'string' && v.length <= (max || MAX_TEXT_LEN);
+}
+
+function validateProspect(data) {
+  for (const field of PROSPECT_FIELDS) {
+    const value = data[field];
+    if (value === undefined || value === null) continue;
+    if (field === 'relevance_score') {
+      if (!Number.isInteger(value) || value < 0 || value > 100) {
+        return 'Relevance score must be a whole number between 0 and 100.';
+      }
+      continue;
+    }
+    if (!isBoundedString(value)) return `Field ${field} must be text of at most ${MAX_TEXT_LEN} characters.`;
+  }
+  if (data.stage !== undefined && data.stage !== null && !PROSPECT_STAGES.includes(data.stage)) {
+    return 'Stage must be one of: ' + PROSPECT_STAGES.join(', ') + '.';
+  }
+  return null;
+}
+
+// AI inputs are bounded so one request cannot push an unbounded prompt
+// into the model. The limit is generous for a real message and still caps
+// the cost of a careless or hostile one.
+const MAX_AI_INPUT_LEN = 20000;
+function aiInputTooLong(...parts) {
+  return parts.reduce((n, p) => n + (typeof p === 'string' ? p.length : 0), 0) > MAX_AI_INPUT_LEN;
+}
 
 function prospectFromBody(body) {
   const out = {};
@@ -405,6 +495,8 @@ app.post('/api/prospects', auth.requireAuth, (req, res) => {
     return res.status(400).json({ error: 'invalid_request', detail: 'Prospect name is required.' });
   }
   const data = prospectFromBody(body);
+  const bad = validateProspect(data);
+  if (bad) return res.status(400).json({ error: 'invalid_request', detail: bad });
   const fields = Object.keys(data);
   const placeholders = fields.map(() => '?').join(', ');
   const info = db.prepare(`INSERT INTO prospects (${fields.join(', ')}) VALUES (${placeholders})`).run(...fields.map((f) => data[f]));
@@ -422,6 +514,8 @@ app.put('/api/prospects/:id', auth.requireAuth, (req, res) => {
   const data = prospectFromBody(req.body || {});
   const fields = Object.keys(data);
   if (fields.length === 0) return res.status(400).json({ error: 'invalid_request', detail: 'No fields to update.' });
+  const bad = validateProspect(data);
+  if (bad) return res.status(400).json({ error: 'invalid_request', detail: bad });
   const sets = fields.map((f) => `${f} = ?`).join(', ');
   const info = db.prepare(`UPDATE prospects SET ${sets}, updated_at = datetime('now') WHERE id = ?`).run(...fields.map((f) => data[f]), req.params.id);
   if (info.changes === 0) return res.status(404).json({ error: 'not_found' });
@@ -452,6 +546,9 @@ app.post('/api/prospects/:id/interactions', auth.requireAuth, (req, res) => {
   const text = body.text || body.summary || '';
   const happenedOn = body.happened_on || body.date || null;
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'invalid_request', detail: 'Interaction text is required.' });
+  if (!isBoundedString(text, 5000)) return res.status(400).json({ error: 'invalid_request', detail: 'Interaction text must be at most 5000 characters.' });
+  if (kind !== null && !isBoundedString(kind, 100)) return res.status(400).json({ error: 'invalid_request', detail: 'Interaction kind must be text of at most 100 characters.' });
+  if (happenedOn !== null && !isBoundedString(happenedOn, 20)) return res.status(400).json({ error: 'invalid_request', detail: 'Interaction date must be text of at most 20 characters.' });
   const info = db.prepare('INSERT INTO interactions (prospect_id, kind, text, happened_on) VALUES (?, ?, ?, ?)').run(req.params.id, kind, text, happenedOn);
   db.prepare("UPDATE prospects SET last_interaction = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(req.params.id);
   res.status(201).json(db.prepare('SELECT * FROM interactions WHERE id = ?').get(info.lastInsertRowid));
@@ -467,6 +564,7 @@ app.post('/api/prospects/:id/notes', auth.requireAuth, (req, res) => {
   if (!prospect) return res.status(404).json({ error: 'not_found' });
   const text = req.body && req.body.text;
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'invalid_request', detail: 'Note text is required.' });
+  if (!isBoundedString(text, 5000)) return res.status(400).json({ error: 'invalid_request', detail: 'Note text must be at most 5000 characters.' });
   const info = db.prepare('INSERT INTO notes (prospect_id, text) VALUES (?, ?)').run(req.params.id, text);
   res.status(201).json(db.prepare('SELECT * FROM notes WHERE id = ?').get(info.lastInsertRowid));
 });
@@ -497,12 +595,31 @@ app.post('/api/goals', auth.requireAuth, (req, res) => {
   const body = req.body || {};
   const title = typeof body.title === 'string' ? body.title.trim() : (typeof body.text === 'string' ? body.text.trim() : '');
   if (!title) return res.status(400).json({ error: 'invalid_request', detail: 'Goal text is required.' });
+  if (!isBoundedString(title)) return res.status(400).json({ error: 'invalid_request', detail: 'Goal text must be at most 2000 characters.' });
+  const GOAL_STATUSES = ['Active', 'Done', 'Paused'];
+  if (body.status !== undefined && body.status !== null && !GOAL_STATUSES.includes(body.status)) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'Goal status must be Active, Done, or Paused.' });
+  }
+  for (const f of ['category', 'target', 'deadline', 'description']) {
+    if (body[f] !== undefined && body[f] !== null && !isBoundedString(body[f])) {
+      return res.status(400).json({ error: 'invalid_request', detail: `Goal ${f} must be text of at most 2000 characters.` });
+    }
+  }
   const info = db.prepare('INSERT INTO goals (text, title, category, target, deadline, status, description) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(title, title, body.category || null, body.target || null, body.deadline || null, body.status || 'Active', body.description || null);
   res.status(201).json(goalOut(db.prepare('SELECT * FROM goals WHERE id = ?').get(info.lastInsertRowid)));
 });
 app.put('/api/goals/:id', auth.requireAuth, (req, res) => {
   const body = req.body || {};
+  const GOAL_STATUSES = ['Active', 'Done', 'Paused'];
+  if (body.status !== undefined && body.status !== null && !GOAL_STATUSES.includes(body.status)) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'Goal status must be Active, Done, or Paused.' });
+  }
+  for (const f of ['title', 'text', 'category', 'target', 'deadline', 'description']) {
+    if (body[f] !== undefined && body[f] !== null && !isBoundedString(body[f])) {
+      return res.status(400).json({ error: 'invalid_request', detail: `Goal ${f} must be text of at most 2000 characters.` });
+    }
+  }
   const title = typeof body.title === 'string' ? body.title.trim() : (typeof body.text === 'string' ? body.text.trim() : undefined);
   const info = db.prepare(
     'UPDATE goals SET text = COALESCE(?, text), title = COALESCE(?, title), category = COALESCE(?, category), target = COALESCE(?, target), deadline = COALESCE(?, deadline), status = COALESCE(?, status), description = COALESCE(?, description) WHERE id = ?'
@@ -524,11 +641,22 @@ app.get('/api/memory', auth.requireAuth, (req, res) => {
 app.post('/api/memory', auth.requireAuth, (req, res) => {
   const body = req.body || {};
   if (!body.key || !body.value) return res.status(400).json({ error: 'invalid_request', detail: 'Memory key and value are required.' });
+  if (!isBoundedString(body.key, 100) || !isBoundedString(body.value, 5000)) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'Memory key must be text of at most 100 characters and value at most 5000.' });
+  }
+  if (body.category !== undefined && body.category !== null && !isBoundedString(body.category, 100)) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'Memory category must be text of at most 100 characters.' });
+  }
   const info = db.prepare('INSERT INTO memory_items (key, value, category) VALUES (?, ?, ?)').run(body.key, body.value, body.category || null);
   res.status(201).json(db.prepare('SELECT * FROM memory_items WHERE id = ?').get(info.lastInsertRowid));
 });
 app.put('/api/memory/:id', auth.requireAuth, (req, res) => {
   const body = req.body || {};
+  if ((body.key !== undefined && body.key !== null && !isBoundedString(body.key, 100)) ||
+      (body.value !== undefined && body.value !== null && !isBoundedString(body.value, 5000)) ||
+      (body.category !== undefined && body.category !== null && !isBoundedString(body.category, 100))) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'Memory key must be text of at most 100 characters and value at most 5000.' });
+  }
   const info = db.prepare('UPDATE memory_items SET key = COALESCE(?, key), value = COALESCE(?, value), category = COALESCE(?, category) WHERE id = ?').run(body.key || null, body.value || null, body.category || null, req.params.id);
   if (info.changes === 0) return res.status(404).json({ error: 'not_found' });
   res.json(db.prepare('SELECT * FROM memory_items WHERE id = ?').get(req.params.id));
@@ -546,6 +674,13 @@ app.get('/api/drafts', auth.requireAuth, (req, res) => {
 });
 app.post('/api/drafts', auth.requireAuth, (req, res) => {
   const body = req.body || {};
+  if ((body.type !== undefined && body.type !== null && !isBoundedString(body.type, 100)) ||
+      (body.title !== undefined && body.title !== null && !isBoundedString(body.title)) ||
+      (body.content !== undefined && body.content !== null && !isBoundedString(body.content, 50000)) ||
+      (body.status !== undefined && body.status !== null && !['pending', 'approved', 'rejected'].includes(body.status)) ||
+      (body.prospect_id !== undefined && body.prospect_id !== null && !Number.isInteger(body.prospect_id))) {
+    return res.status(400).json({ error: 'invalid_request', detail: 'Draft fields are not valid.' });
+  }
   const info = db.prepare('INSERT INTO drafts (type, title, content, status, prospect_id) VALUES (?, ?, ?, ?, ?)').run(
     body.type || null, body.title || null, body.content || '', body.status || 'pending', body.prospect_id || null
   );
@@ -631,7 +766,10 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: 'invalid_json', detail: 'Request body is not valid JSON.' });
   }
   logError('server', err.message);
-  res.status(500).json({ error: 'server_error', detail: err.message });
+  // Never send the real error message to the client. It can hold a file
+  // path, a table name, or another internal detail. The full message is
+  // in the server log and the error_log table instead.
+  res.status(500).json({ error: 'server_error', detail: 'Something went wrong on the server.' });
 });
 
 app.listen(PORT, () => {
