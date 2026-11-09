@@ -32,7 +32,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 function notConfigured(res) {
-  return res.status(503).json({ error: 'not_configured', setup: openrouter.SETUP_STEPS });
+  return res.status(503).json({ error: 'not_configured', code: 'not_configured', setup: openrouter.SETUP_STEPS });
 }
 
 function aiError(res, err) {
@@ -92,8 +92,11 @@ app.post('/api/auth/setup', (req, res) => {
     return res.status(400).json({ error: 'invalid_password', detail: 'Password must be at least 8 characters.' });
   }
   db.prepare('INSERT INTO users (password_hash) VALUES (?)').run(auth.hashPassword(password));
+  const user = db.prepare('SELECT id FROM users ORDER BY id LIMIT 1').get();
+  const token = auth.createToken();
+  db.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(token, user.id);
   audit('auth_setup', 'First user created.');
-  res.json({ ok: true });
+  res.json({ ok: true, token });
 });
 
 app.post('/api/auth/login', (req, res) => {
@@ -136,6 +139,14 @@ app.put('/api/config', auth.requireAuth, (req, res) => {
   }
   const temperature = typeof body.temperature === 'number' ? body.temperature : config.temperature;
   const maxTokens = typeof body.max_tokens === 'number' ? body.max_tokens : config.max_tokens;
+  // The dashboard inputs allow temperature 0 to 2 and max tokens 100 to
+  // 32000. Anything outside that range is a bad request, not a silent save.
+  if (!Number.isFinite(temperature) || temperature < 0 || temperature > 2) {
+    return res.status(400).json({ error: 'invalid_config', detail: 'Temperature must be a number between 0 and 2.' });
+  }
+  if (!Number.isInteger(maxTokens) || maxTokens < 100 || maxTokens > 32000) {
+    return res.status(400).json({ error: 'invalid_config', detail: 'Max tokens must be a whole number between 100 and 32000.' });
+  }
   db.prepare('UPDATE model_config SET primary_model = ?, fallback_model = ?, temperature = ?, max_tokens = ? WHERE id = 1')
     .run(primary, fallback, temperature, maxTokens);
   audit('config_change', `primary_model=${primary}, fallback_model=${fallback}, temperature=${temperature}, max_tokens=${maxTokens}`);
@@ -317,11 +328,23 @@ app.delete('/api/prospects/:id', auth.requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/prospects/:id/interactions', auth.requireAuth, (req, res) => {
+  const prospect = db.prepare('SELECT id FROM prospects WHERE id = ?').get(req.params.id);
+  if (!prospect) return res.status(404).json({ error: 'not_found' });
+  res.json(db.prepare('SELECT * FROM interactions WHERE prospect_id = ? ORDER BY created_at DESC').all(req.params.id));
+});
+
 app.post('/api/prospects/:id/interactions', auth.requireAuth, (req, res) => {
   const prospect = db.prepare('SELECT * FROM prospects WHERE id = ?').get(req.params.id);
   if (!prospect) return res.status(404).json({ error: 'not_found' });
   const body = req.body || {};
-  const info = db.prepare('INSERT INTO interactions (prospect_id, kind, text) VALUES (?, ?, ?)').run(req.params.id, body.kind || null, body.text || '');
+  // The dashboard form sends kind, text, and happened_on. The older field
+  // names type, summary, and date are accepted too, so either shape works.
+  const kind = body.kind || body.type || null;
+  const text = body.text || body.summary || '';
+  const happenedOn = body.happened_on || body.date || null;
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'invalid_request', detail: 'Interaction text is required.' });
+  const info = db.prepare('INSERT INTO interactions (prospect_id, kind, text, happened_on) VALUES (?, ?, ?, ?)').run(req.params.id, kind, text, happenedOn);
   db.prepare("UPDATE prospects SET last_interaction = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(req.params.id);
   res.status(201).json(db.prepare('SELECT * FROM interactions WHERE id = ?').get(info.lastInsertRowid));
 });
@@ -341,20 +364,43 @@ app.post('/api/prospects/:id/notes', auth.requireAuth, (req, res) => {
 });
 
 // Goals
+// The dashboard goal form sends title, target, deadline, status, and
+// description. Older rows only have text and category, so the response
+// normalizes title from text and defaults status to Active.
+function goalOut(row) {
+  if (!row) return row;
+  return {
+    id: row.id,
+    title: row.title || row.text || '',
+    text: row.text || row.title || '',
+    category: row.category || null,
+    target: row.target || null,
+    deadline: row.deadline || null,
+    status: row.status || 'Active',
+    description: row.description || null,
+    created_at: row.created_at,
+  };
+}
+
 app.get('/api/goals', auth.requireAuth, (req, res) => {
-  res.json(db.prepare('SELECT * FROM goals ORDER BY created_at DESC').all());
+  res.json(db.prepare('SELECT * FROM goals ORDER BY created_at DESC').all().map(goalOut));
 });
 app.post('/api/goals', auth.requireAuth, (req, res) => {
   const body = req.body || {};
-  if (!body.text) return res.status(400).json({ error: 'invalid_request', detail: 'Goal text is required.' });
-  const info = db.prepare('INSERT INTO goals (text, category) VALUES (?, ?)').run(body.text, body.category || null);
-  res.status(201).json(db.prepare('SELECT * FROM goals WHERE id = ?').get(info.lastInsertRowid));
+  const title = typeof body.title === 'string' ? body.title.trim() : (typeof body.text === 'string' ? body.text.trim() : '');
+  if (!title) return res.status(400).json({ error: 'invalid_request', detail: 'Goal text is required.' });
+  const info = db.prepare('INSERT INTO goals (text, title, category, target, deadline, status, description) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(title, title, body.category || null, body.target || null, body.deadline || null, body.status || 'Active', body.description || null);
+  res.status(201).json(goalOut(db.prepare('SELECT * FROM goals WHERE id = ?').get(info.lastInsertRowid)));
 });
 app.put('/api/goals/:id', auth.requireAuth, (req, res) => {
   const body = req.body || {};
-  const info = db.prepare('UPDATE goals SET text = COALESCE(?, text), category = COALESCE(?, category) WHERE id = ?').run(body.text || null, body.category || null, req.params.id);
+  const title = typeof body.title === 'string' ? body.title.trim() : (typeof body.text === 'string' ? body.text.trim() : undefined);
+  const info = db.prepare(
+    'UPDATE goals SET text = COALESCE(?, text), title = COALESCE(?, title), category = COALESCE(?, category), target = COALESCE(?, target), deadline = COALESCE(?, deadline), status = COALESCE(?, status), description = COALESCE(?, description) WHERE id = ?'
+  ).run(title || null, title || null, body.category || null, body.target || null, body.deadline || null, body.status || null, body.description || null, req.params.id);
   if (info.changes === 0) return res.status(404).json({ error: 'not_found' });
-  res.json(db.prepare('SELECT * FROM goals WHERE id = ?').get(req.params.id));
+  res.json(goalOut(db.prepare('SELECT * FROM goals WHERE id = ?').get(req.params.id)));
 });
 app.delete('/api/goals/:id', auth.requireAuth, (req, res) => {
   const info = db.prepare('DELETE FROM goals WHERE id = ?').run(req.params.id);
@@ -441,6 +487,7 @@ app.get('/api/analytics', auth.requireAuth, (req, res) => {
   res.json({
     label: 'App records only. Counts are computed from real database rows in this app, not from LinkedIn.',
     totalProspects: db.prepare('SELECT COUNT(*) AS c FROM prospects').get().c,
+    totalDrafts: db.prepare('SELECT COUNT(*) AS c FROM drafts').get().c,
     prospectsByStage: byStage,
     followUpsDue,
     draftsByTypeAndStatus: draftsByTypeStatus,

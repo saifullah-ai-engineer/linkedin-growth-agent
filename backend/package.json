@@ -11,7 +11,8 @@
   "name": "linkedin-growth-agent-backend",
   "scripts": {
     "start": "node server.js",
-    "build": "terser public/app.js -c -m -o public/app.min.js --source-map \"url=app.min.js.map\""
+    "build": "terser public/app.js -c -m -o public/app.min.js --source-map \"url=app.min.js.map\"",
+    "test": "node --test test/api.test.js"
   },
   "version": "1.0.0",
   "devDependencies": {

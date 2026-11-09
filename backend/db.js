@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 
-const dataDir = path.join(__dirname, 'data');
+const dataDir = process.env.LIGA_DATA_DIR || path.join(__dirname, 'data');
 fs.mkdirSync(dataDir, { recursive: true });
 const dbPath = path.join(dataDir, 'app.db');
 
@@ -116,6 +116,21 @@ CREATE TABLE IF NOT EXISTS app_settings (
   value TEXT
 );
 `);
+
+// Lightweight migrations: add columns the dashboard uses. Old databases
+// gain the columns on first start; no data is lost and no rewrite is needed.
+function ensureColumn(table, column, type) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
+}
+ensureColumn('goals', 'title', 'TEXT');
+ensureColumn('goals', 'target', 'TEXT');
+ensureColumn('goals', 'deadline', 'TEXT');
+ensureColumn('goals', 'status', "TEXT NOT NULL DEFAULT 'Active'");
+ensureColumn('goals', 'description', 'TEXT');
+ensureColumn('interactions', 'happened_on', 'TEXT');
 
 function rowCount(table) {
   return db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get().c;

@@ -17,7 +17,7 @@ The dashboard loads `public/app.min.js`, the minified build of `public/app.js`. 
 ## Setup steps
 
 1. Start the server with the commands above.
-2. Open the app (or call the API) and set a local password. `POST /api/auth/setup` accepts `{ "password": "..." }` with at least 8 characters. Setup is disabled after the first user is created.
+2. Open the app (or call the API) and set a local password. `POST /api/auth/setup` accepts `{ "password": "..." }` with at least 8 characters. Setup is disabled after the first user is created. Setup returns a bearer token, so the first run signs you straight in.
 3. Log in with `POST /api/auth/login` using that password. It returns a bearer token. Send it as `Authorization: Bearer <token>` on every `/api/*` call except `/api/auth/status`, `/api/auth/setup`, and `/api/auth/login`.
 4. Add your OpenRouter key in Settings, or set `OPENROUTER_API_KEY` in `backend/.env` (see `.env.example`). The key is server side only and is never returned by the API.
 5. Test the connection with `POST /api/config/test`. It calls `https://openrouter.ai/api/v1/models` and returns `{ ok, modelCount }` or a structured error.
@@ -31,20 +31,29 @@ On first run, with empty tables, the database seeds Saif Ullah's real profile fa
 
 Auth: `GET /api/auth/status`, `POST /api/auth/setup`, `POST /api/auth/login`, `POST /api/auth/logout`.
 
-Config and models: `GET /api/config`, `PUT /api/config`, `POST /api/config/key`, `POST /api/config/test`, `GET /api/models`.
+Config and models: `GET /api/config`, `PUT /api/config`, `POST /api/config/key`, `POST /api/config/test`, `GET /api/models`. `PUT /api/config` rejects paid models with 400 `paid_model_not_allowed`, and rejects a temperature outside 0 to 2 or max tokens outside 100 to 32000 with 400 `invalid_config`.
 
 AI: `POST /api/ai/chat`, `POST /api/ai/draft`, `POST /api/strategist`. All three build prompts from real database evidence only (goals, memory, prospects, interactions) plus text the user pasted. With no key configured they return HTTP 503 `{ error: "not_configured", setup: [...] }` and generate no answer. The app uses free models only, with a full fallback chain of all 12 free models in order. On 429, timeout, or model unavailable it walks the whole chain, then returns a structured error and writes to `error_log`.
 
-CRM: `GET/POST /api/prospects`, `GET/PUT/DELETE /api/prospects/:id`, `GET /api/prospects/prioritized`, `POST /api/prospects/:id/interactions`, `GET/POST /api/prospects/:id/notes`, `GET/POST/PUT/DELETE /api/goals`, `GET/POST/PUT/DELETE /api/memory`, `GET/POST /api/drafts`, `POST /api/drafts/:id/approve`, `POST /api/drafts/:id/reject`.
+CRM: `GET/POST /api/prospects`, `GET/PUT/DELETE /api/prospects/:id`, `GET /api/prospects/prioritized`, `GET/POST /api/prospects/:id/interactions`, `GET/POST /api/prospects/:id/notes`, `GET/POST/PUT/DELETE /api/goals`, `GET/POST/PUT/DELETE /api/memory`, `GET/POST /api/drafts`, `POST /api/drafts/:id/approve`, `POST /api/drafts/:id/reject`. Goals accept the dashboard fields title, target, deadline, status, and description; older rows with only text still read back with title set from text. Interactions accept kind, text, and happened_on, and the older type, summary, and date field names still work.
 
-Feedback and reporting: `GET /api/recommendations`, `POST /api/recommendations/:id/feedback`, `GET /api/audit`, `GET /api/errors`, `GET /api/analytics`. The analytics response also returns `prospectsByDay` and `draftsByDay`, per-day counts for the last 14 days computed from `created_at`, with zero-count days included, so the Analytics charts are honest.
+Feedback and reporting: `GET /api/recommendations`, `POST /api/recommendations/:id/feedback`, `GET /api/audit`, `GET /api/errors`, `GET /api/analytics`. The analytics response also returns `totalDrafts`, `prospectsByDay` and `draftsByDay`, per-day counts for the last 14 days computed from `created_at`, with zero-count days included, so the Analytics charts are honest.
 
 Kill switch: `GET /api/killswitch`, `POST /api/killswitch { enabled }`. When enabled, all `/api/ai/*` and draft approve endpoints return 403 `{ error: "kill_switch_on" }`.
+
+## Testing
+
+```bash
+npm test
+```
+
+The suite uses Node's built-in test runner, no extra dependency. It starts the real server as a child process against a throwaway data directory (`LIGA_DATA_DIR` points at a temp folder), so it never touches a real database or a real key. 10 tests cover auth and setup, config validation including the paid-model rejection, the not-configured AI responses, prospect CRUD and prioritized ranking, interactions and notes, goals, memory, drafts and approval, the kill switch, recommendations, analytics, audit, and errors. They run in about 5 seconds and also run in CI on every push.
 
 ## Files
 
 - `server.js`: Express app and all routes.
-- `db.js`: SQLite setup, tables, seed data, audit and error logging.
+- `db.js`: SQLite setup, tables, seed data, audit and error logging. The data directory defaults to `backend/data` and can be overridden with the `LIGA_DATA_DIR` environment variable.
+- `test/api.test.js`: automated API test suite, Node built-in test runner.
 - `auth.js`: scrypt password hashing and bearer token auth.
 - `openrouter.js`: OpenRouter client, key storage, model list, chat with fallback, structured JSON validation.
 - `agents/strategist.js`: orchestrator that classifies requests, gathers evidence, and stores recommendations.
