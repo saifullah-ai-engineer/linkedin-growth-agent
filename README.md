@@ -248,6 +248,7 @@ If the backend is down or no token is set, the panel shows a "Backend: not conne
 |---|---|---|---|
 | `OPENROUTER_API_KEY` | Yes, for AI features | None | Set in `backend/.env` (file mode 0600) or the environment. Never committed. See `backend/.env.example`. |
 | `PORT` | No | `3000` | Port the backend listens on. The extension host permission covers `http://localhost:3000/*`; a different port needs a matching manifest change. |
+| `LIGA_DATA_DIR` | No | `backend/data` | Where the SQLite database lives. Used by the test suite to run against a throwaway directory. |
 
 ### Development commands
 
@@ -256,6 +257,7 @@ Run from the `backend/` folder:
 ```bash
 npm start             # same as node server.js
 npm run build         # rebuild public/app.min.js from public/app.js with terser
+npm test              # run the automated API test suite (10 tests, about 5 seconds)
 node --check server.js
 node --check openrouter.js
 node --check db.js
@@ -302,11 +304,13 @@ Full endpoint list: `backend/README.md`.
 
 ### Testing
 
-There is no automated test suite for the backend yet. Do not look for one. Verification is done in three ways:
+The backend has a real automated API test suite now: `backend/test/api.test.js`, run with `npm test` from the `backend` folder. It uses Node's built-in test runner, no extra dependency, and starts the real server as a child process against a throwaway data directory, so it never touches a real database or a real key. 10 tests, all passing, in about 5 seconds, covering auth and setup, config validation including the paid-model rejection, the not-configured AI responses, prospect CRUD and prioritized ranking, interactions and notes, goals, memory, drafts and approval, the kill switch, recommendations, analytics, audit, and errors.
 
-1. **CI on every push**: `.github/workflows/ci.yml` runs `npm ci`, `npm run build`, `node --check` on `server.js`, `openrouter.js`, `db.js`, every agent module, and every extension script, then fails if the committed minified bundle differs from a fresh build. The first CI runs on this repo completed with no failures. One warning appears on every run: Node.js 20 is deprecated on GitHub runners.
-2. **Manual smoke check**: start the server, open http://localhost:3000, set the first-run password, create a prospect, open Analytics, and confirm the counts change. With no OpenRouter key, the AI pages must show the not-configured state and generate no answer.
-3. **Measured performance, 2026-11-09, Lighthouse 13.6.0, real runs**: setup screen 100 Performance, 100 Accessibility, 100 Best Practices, 100 SEO. Authenticated dashboard 100 in all four categories, then 99 Performance with 100 in the other three after the redesign (setup 94 on that re-run, normal run-to-run variance). Backend API p50 about 1 ms and p95 under 2.1 ms on auth status, prospects, prioritized, analytics, memory, goals, and drafts.
+Verification is done in three ways:
+
+1. **CI on every push**: `.github/workflows/ci.yml` runs `npm ci`, `npm run build`, `npm test`, `node --check` on `server.js`, `openrouter.js`, `db.js`, every agent module, and every extension script, then fails if the committed minified bundle differs from a fresh build, and fails if any README contains placeholder text such as `your-username` or `<YOUR_GIT_URL>`. CI runs on Node 24, since `node:sqlite` needs Node 22.5 or newer.
+2. **Manual smoke check**: start the server, open http://localhost:3000, set the first-run password, create a prospect, open Analytics, and confirm the counts change. With no OpenRouter key, the AI pages must show the not-configured state and generate no answer. A full browser run of all 13 pages, including setup, prospect creation, CRM interactions and notes, goal creation, draft approval, kill switch, and logout, passes with no console errors.
+3. **Measured performance, 2026-11-09, Lighthouse 13.6.0, real runs after the upgrade**: setup screen 100 Performance, 100 Accessibility, 100 Best Practices, 100 SEO on the first run and 99 Performance with 100 in the other three on the second run. Authenticated dashboard 100 in all four categories on the first run and 95 Performance with 100 in the other three on the second run. Backend API p50 1.4 to 3.0 ms and p95 2.6 to 6.9 ms across the ten main endpoints (20 runs each).
 
 ### Deployment
 
@@ -315,7 +319,7 @@ There is no hosted deployment. This is a local app by design: the backend runs o
 ### Security considerations
 
 - **Local password**: the first-run password is hashed with scrypt and stored in the local database. There is no password reset. If you lose it, delete `backend/data/app.db` to reset the app to first-run setup, which also deletes all prospects, drafts, and memory.
-- **Bearer tokens**: login returns a token stored in `localStorage` by the dashboard and in `chrome.storage.local` by the extension. Log out to delete the server-side session row.
+- **Bearer tokens**: login returns a token stored in `sessionStorage` by the dashboard and in `chrome.storage.local` by the extension. Log out to delete the server-side session row.
 - **API key**: the OpenRouter key lives server side only, in `backend/.env` (written with mode 0600) or the `OPENROUTER_API_KEY` environment variable. It is never logged, never returned by any API response, and never written into any dashboard file. The extension never holds it.
 - **Auth on every route**: every `/api/*` endpoint except status, setup, and login requires the bearer token. The kill switch blocks AI and draft approval with `403 kill_switch_on`.
 - **Audit and error logs**: approving or rejecting a draft, deleting a prospect, goal, or memory item, changing config, and toggling the kill switch each write an `audit_log` row, viewable in Settings. Failures are written to `error_log`.
@@ -333,7 +337,6 @@ There is no hosted deployment. This is a local app by design: the backend runs o
 
 Ideas, not commitments. Nothing here is promised or scheduled.
 
-- Automated tests for the API routes, so the backend has a real test suite instead of syntax checks only.
 - Live AI verification end to end once the OpenRouter key is configured in the backend.
 - More dashboard screenshots as new pages are added.
 - Optional export of prospects and drafts to CSV from the dashboard.
@@ -346,9 +349,15 @@ linkedin-growth-agent/
   LICENSE                   MIT
   .gitignore
   LOCKED-STATE.md           Frozen reference of the locked state, 2026-11-09
+  CONTRIBUTING.md           How to contribute, including the rules that do not change
+  SECURITY.md               How to report a security problem
   .github/
     workflows/
-      ci.yml                GitHub Actions: npm ci, build, node --check
+      ci.yml                GitHub Actions: npm ci, build, test, node --check, README check
+    dependabot.yml          Weekly npm updates for the backend
+    ISSUE_TEMPLATE/
+      bug_report.md, feature_request.md
+    PULL_REQUEST_TEMPLATE.md
   docs/
     images/                 HTML and CSS visuals, plus the rendered repo diagram
       hero.png, agents.png, architecture-overview.png,
@@ -367,6 +376,8 @@ linkedin-growth-agent/
     db.js                   SQLite schema, seed data, audit and error logging
     auth.js                 Local login, scrypt password hashing, bearer tokens
     openrouter.js           OpenRouter client, key handling, fallback, structured JSON
+    test/
+      api.test.js           Automated API test suite, Node built-in test runner
     agents/                 Six real agent modules: strategist, audience,
                             relationship, content, outreach, profile
     public/                 Dashboard frontend (index.html, styles.css, app.js)
@@ -385,6 +396,21 @@ linkedin-growth-agent/
 Everything lives in `backend/data/app.db` (SQLite). Tables: users, sessions, prospects, interactions, notes, goals, memory_items, drafts, recommendations, audit_log, model_config, error_log, app_settings. Delete the file to reset the app to first-run setup. The file is gitignored and is never committed.
 
 On first run, with empty tables, the database seeds seven real memory items (identity, LinkedIn, portfolio, GitHub, services, target audiences, positioning) and three goals derived from them. It seeds zero fake prospects. It seeds one example prospect named "EXAMPLE, delete me" in stage Target so the UI empty state and pipeline can be demonstrated. Delete that row before real use.
+
+## Upgrade notes, 2026-11-09
+
+A full end-to-end verification found and fixed six real bugs, all re-tested after the fix:
+
+1. **First-run setup bounced new users to the login screen.** Setup returned no token, so the dashboard entered the app with no session and was signed straight back out. Setup now returns a bearer token and signs the user in directly.
+2. **Goals could not be saved from the dashboard.** The goal form sends title, target, deadline, status, and description, but the API only accepted a text field and answered 400. The goals table gained those columns (existing databases migrate on first start), and the API accepts the dashboard shape. Older rows with only text still read back with the title set from the text.
+3. **Interactions were saved empty and never shown.** The interaction form sent type, date, and summary, but the API stored kind and text, so every interaction saved with no kind and no text. There was also no endpoint to list a prospect's interactions, so the CRM log was always empty. The API now accepts both field shapes, stores the date as happened_on, and `GET /api/prospects/:id/interactions` lists them. The CRM page reads from that endpoint.
+4. **AI pages showed a bare error code instead of the setup steps.** The not-configured 503 was thrown as a plain error, so the friendly guidance never rendered. API errors now carry their response body, and every AI form shows the setup steps when no key is configured.
+5. **Config accepted impossible values.** Temperature 99 and max tokens -5 saved without complaint. The API now rejects a temperature outside 0 to 2 and max tokens outside 100 to 32000 with 400.
+6. **Logout never told the server.** Signing out only cleared the browser token, so session rows piled up in the database. Logout now deletes the server-side session, and still signs out locally if that call fails.
+
+Other changes in the same upgrade: an automated API test suite (`backend/test/api.test.js`, 10 tests, about 5 seconds, also in CI), CI moved to Node 24 with a README placeholder check, issue and pull request templates, CONTRIBUTING.md, SECURITY.md, Dependabot for the backend, the root `.gitignore` now covers `data/`, and `/api/analytics` returns `totalDrafts` so the Analytics page no longer relies on a possibly stale dashboard cache. The dashboard now loads its two cache calls in parallel on the Content Studio page and the Analytics refresh. Nothing about the free-models-only chain, the extension permissions, or the honest limits changed.
+
+Measured after the upgrade: API p50 1.4 to 3.0 ms and p95 2.6 to 6.9 ms across the ten main endpoints (20 runs each, before: p50 1.0 to 1.9 ms, p95 1.3 to 12.0 ms). The API was already fast; the change is within run-to-run noise, not a speedup. Bundle sizes: `app.min.js` 49,270 bytes (12,560 bytes gzipped on the wire), `styles.css` 19,814 bytes (5,119 bytes gzipped). CSS minification was measured and skipped: it would save about 1 KB on the wire, not worth a new build dependency. Lighthouse 13.6.0 after the upgrade, two real runs: first run setup 100/100/100/100 and dashboard 100/100/100/100; second run setup 99/100/100/100 and dashboard 95/100/100/100. All four categories stay at 90 or above.
 
 ## Honest limits
 

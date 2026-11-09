@@ -6,5 +6,6 @@ __pycache__/
 *.db-shm
 *.db-wal
 backend/data/
+data/
 backend/.env
 .DS_Store
