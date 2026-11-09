@@ -19,6 +19,22 @@ function verifyPassword(password, stored) {
   return crypto.timingSafeEqual(a, b);
 }
 
+// Async verification runs scrypt in the libuv thread pool instead of
+// blocking the event loop. Login uses this; the sync version above is kept
+// only for the one-time setup path and for tests that call it directly.
+function verifyPasswordAsync(password, stored) {
+  return new Promise((resolve) => {
+    if (!stored || !stored.includes(':')) return resolve(false);
+    const [salt, hash] = stored.split(':');
+    crypto.scrypt(password, salt, 64, (err, derived) => {
+      if (err) return resolve(false);
+      const b = Buffer.from(hash, 'hex');
+      if (derived.length !== b.length) return resolve(false);
+      resolve(crypto.timingSafeEqual(derived, b));
+    });
+  });
+}
+
 function createToken() {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -43,4 +59,4 @@ function requireAuth(req, res, next) {
   return next();
 }
 
-module.exports = { hashPassword, verifyPassword, createToken, getUserCount, getBearerToken, requireAuth };
+module.exports = { hashPassword, verifyPassword, verifyPasswordAsync, createToken, getUserCount, getBearerToken, requireAuth };

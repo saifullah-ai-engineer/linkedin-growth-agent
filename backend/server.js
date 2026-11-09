@@ -99,12 +99,52 @@ app.post('/api/auth/setup', (req, res) => {
   res.json({ ok: true, token });
 });
 
-app.post('/api/auth/login', (req, res) => {
+// Failed-login throttle. Async scrypt keeps the event loop free, but 50
+// wrong passwords at once still saturate the CPUs with hash work and slow
+// every other request. After 5 failed attempts from one address inside 60
+// seconds, login answers 429 without running a password check at all. A
+// successful login clears the count. In memory only; a restart resets it.
+const LOGIN_WINDOW_MS = 60 * 1000;
+const LOGIN_MAX_FAILURES = 5;
+const loginFailures = new Map();
+function loginRetryAfterSeconds(ip) {
+  const entry = loginFailures.get(ip);
+  if (!entry) return 0;
+  const age = Date.now() - entry.firstAt;
+  if (age > LOGIN_WINDOW_MS) {
+    loginFailures.delete(ip);
+    return 0;
+  }
+  if (entry.count < LOGIN_MAX_FAILURES) return 0;
+  return Math.ceil((LOGIN_WINDOW_MS - age) / 1000);
+}
+function recordLoginFailure(ip) {
+  const now = Date.now();
+  const entry = loginFailures.get(ip);
+  if (!entry || now - entry.firstAt > LOGIN_WINDOW_MS) loginFailures.set(ip, { count: 1, firstAt: now });
+  else entry.count += 1;
+}
+
+app.post('/api/auth/login', async (req, res) => {
+  const retryAfter = loginRetryAfterSeconds(req.ip);
+  if (retryAfter > 0) {
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).json({ error: 'too_many_attempts', detail: `Too many failed login attempts. Try again in ${retryAfter} seconds.`, retry_after: retryAfter });
+  }
+  // Count the attempt up front, before the password check runs. Counting
+  // only after a failed check lets a simultaneous burst slip through,
+  // because every request in the burst passes the check before any of
+  // them has finished hashing. A successful login clears the count.
+  recordLoginFailure(req.ip);
   const password = req.body && req.body.password;
   const user = db.prepare('SELECT * FROM users ORDER BY id LIMIT 1').get();
-  if (!user || typeof password !== 'string' || !auth.verifyPassword(password, user.password_hash)) {
+  // Password checks run async so a flood of wrong passwords cannot block
+  // the event loop and freeze the whole app for seconds at a time.
+  if (!user || typeof password !== 'string' || !(await auth.verifyPasswordAsync(password, user.password_hash))) {
+    audit('login_failed', 'Failed login attempt.');
     return res.status(401).json({ error: 'invalid_credentials', detail: 'Wrong password.' });
   }
+  loginFailures.delete(req.ip);
   const token = auth.createToken();
   db.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(token, user.id);
   res.json({ token });
@@ -180,6 +220,10 @@ app.get('/api/models', auth.requireAuth, async (req, res) => {
 // AI proxy
 app.post('/api/ai/chat', auth.requireAuth, async (req, res) => {
   if (killSwitchOn(req, res)) return;
+  // Fail fast when no key is configured. Building the evidence prompt
+  // reads every prospect and takes over 100 ms at 10k prospects, so it
+  // must not run for a request that is about to fail with not_configured.
+  if (!openrouter.getKey()) return notConfigured(res);
   const message = (req.body && req.body.message) || '';
   const task = (req.body && req.body.task) || '';
   const pastedText = (req.body && (req.body.pastedText || req.body.context)) || '';
@@ -202,6 +246,7 @@ app.post('/api/ai/chat', auth.requireAuth, async (req, res) => {
 
 app.post('/api/ai/draft', auth.requireAuth, async (req, res) => {
   if (killSwitchOn(req, res)) return;
+  if (!openrouter.getKey()) return notConfigured(res);
   const type = (req.body && req.body.type) || 'general';
   const inputs = (req.body && req.body.inputs) || {};
   const classification = strategist.classifyRequest(type);
@@ -224,6 +269,7 @@ app.post('/api/ai/draft', auth.requireAuth, async (req, res) => {
 // Strategist and recommendations
 app.post('/api/strategist', auth.requireAuth, async (req, res) => {
   if (killSwitchOn(req, res)) return;
+  if (!openrouter.getKey()) return notConfigured(res);
   const message = (req.body && req.body.message) || '';
   const pastedText = (req.body && (req.body.pastedText || req.body.context)) || '';
   if (!message) return res.status(400).json({ error: 'invalid_request', detail: 'Provide a message.' });
@@ -262,32 +308,94 @@ function prospectFromBody(body) {
   return out;
 }
 
+// Optional ?limit= and ?offset= for list endpoints. No limit means the
+// whole list, exactly as before. A bad value is a 400, not a silent default.
+function parseLimitOffset(req) {
+  const rawLimit = req.query.limit;
+  const rawOffset = req.query.offset;
+  let limit = null;
+  let offset = 0;
+  if (rawLimit !== undefined) {
+    limit = Number(rawLimit);
+    if (!Number.isInteger(limit) || limit < 0 || limit > 1000) {
+      return { error: 'limit must be a whole number between 0 and 1000.' };
+    }
+  }
+  if (rawOffset !== undefined) {
+    offset = Number(rawOffset);
+    if (!Number.isInteger(offset) || offset < 0) {
+      return { error: 'offset must be a whole number of 0 or more.' };
+    }
+  }
+  return { limit, offset };
+}
+
+function limitOffsetClause(parsed) {
+  // SQLite needs a LIMIT clause before OFFSET, so offset alone uses LIMIT -1.
+  let clause = '';
+  if (parsed.limit !== null) clause += ' LIMIT ?';
+  else if (parsed.offset) clause += ' LIMIT -1';
+  if (parsed.offset) clause += ' OFFSET ?';
+  return clause;
+}
+
+function limitOffsetParams(parsed) {
+  const params = [];
+  if (parsed.limit !== null) params.push(parsed.limit);
+  if (parsed.offset) params.push(parsed.offset);
+  return params;
+}
+
 app.get('/api/prospects', auth.requireAuth, (req, res) => {
-  const rows = db.prepare('SELECT * FROM prospects ORDER BY created_at DESC').all();
-  res.json(rows);
+  const parsed = parseLimitOffset(req);
+  if (parsed.error) return res.status(400).json({ error: 'invalid_request', detail: parsed.error });
+  const sql = 'SELECT * FROM prospects ORDER BY created_at DESC' + limitOffsetClause(parsed);
+  res.json(db.prepare(sql).all(...limitOffsetParams(parsed)));
 });
 
+// Priority score, computed in SQL so the database sorts and limits before
+// any JavaScript runs. The formula is the same one the endpoint used
+// before, in JavaScript: stage weight times 10, plus half the relevance
+// score, plus 15 for a due follow up (5 if scheduled), plus 5 for an
+// interaction in the last 15 days. The server runs in UTC, so the
+// julianday comparison matches the JavaScript date math exactly.
+const PRIORITY_SCORE_SQL = `(
+  (CASE stage
+    WHEN 'Target' THEN 2 WHEN 'Research' THEN 3 WHEN 'Connection Requested' THEN 3
+    WHEN 'Connected' THEN 4 WHEN 'Conversation' THEN 5 WHEN 'Qualified Opportunity' THEN 6
+    WHEN 'Meeting' THEN 7 WHEN 'Proposal' THEN 8 WHEN 'Won' THEN 1 WHEN 'Lost' THEN 0
+    ELSE 2 END) * 10
+  + COALESCE(relevance_score, 0) * 0.5
+  + CASE WHEN follow_up_date IS NOT NULL AND follow_up_date <= date('now') THEN 15
+         WHEN follow_up_date IS NOT NULL THEN 5 ELSE 0 END
+  + CASE WHEN last_interaction IS NOT NULL
+          AND julianday('now') - julianday(last_interaction) < 15 THEN 5 ELSE 0 END
+)`;
+
 app.get('/api/prospects/prioritized', auth.requireAuth, (req, res) => {
-  const rows = db.prepare('SELECT * FROM prospects').all();
+  const parsed = parseLimitOffset(req);
+  if (parsed.error) return res.status(400).json({ error: 'invalid_request', detail: parsed.error });
+  let sql = `SELECT *, ${PRIORITY_SCORE_SQL} AS priority_score FROM prospects ORDER BY priority_score DESC, id ASC`;
+  sql += limitOffsetClause(parsed);
+  const rows = db.prepare(sql).all(...limitOffsetParams(parsed));
   const stageWeight = { Target: 2, Research: 3, 'Connection Requested': 3, Connected: 4, Conversation: 5, 'Qualified Opportunity': 6, Meeting: 7, Proposal: 8, Won: 1, Lost: 0 };
   const today = new Date().toISOString().slice(0, 10);
+  // Rank reasons are built only for the rows actually returned, not for
+  // every row in the table.
   const ranked = rows.map((p) => {
     const weight = stageWeight[p.stage] != null ? stageWeight[p.stage] : 2;
-    const relevance = typeof p.relevance_score === 'number' ? p.relevance_score : 0;
-    let score = weight * 10 + relevance * 0.5;
     const reasons = [`Stage ${p.stage} (weight ${weight})`, `relevance score ${p.relevance_score == null ? 'not scored' : p.relevance_score}`];
     if (p.follow_up_date) {
-      if (p.follow_up_date <= today) { score += 15; reasons.push(`follow up due ${p.follow_up_date}`); }
-      else { score += 5; reasons.push(`follow up scheduled ${p.follow_up_date}`); }
+      if (p.follow_up_date <= today) { reasons.push(`follow up due ${p.follow_up_date}`); }
+      else { reasons.push(`follow up scheduled ${p.follow_up_date}`); }
     }
     if (p.last_interaction) {
-      const days = Math.floor((Date.now() - Date.parse(p.last_interaction)) / 86400000);
-      if (!Number.isNaN(days) && days <= 14) { score += 5; reasons.push(`recent interaction ${p.last_interaction}`); }
-      else if (!Number.isNaN(days)) { reasons.push(`last interaction ${days} days ago`); }
+      const ms = Date.now() - Date.parse(p.last_interaction);
+      if (!Number.isNaN(ms) && ms < 15 * 86400000) { reasons.push(`recent interaction ${p.last_interaction}`); }
+      else if (!Number.isNaN(ms)) { reasons.push(`last interaction ${Math.floor(ms / 86400000)} days ago`); }
     }
-    return { ...p, priority_score: score, rank_reason: reasons.join('; ') };
+    return { ...p, rank_reason: reasons.join('; ') };
   });
-  ranked.sort((a, b) => b.priority_score - a.priority_score);
   res.json(ranked);
 });
 
@@ -514,6 +622,14 @@ app.get(/^\/(?!api\/).*/, (req, res) => {
 });
 
 app.use((err, req, res, next) => {
+  // Body parser errors get their real status: 400 for bad JSON, 413 for a
+  // body over the 1 MB limit. Anything else is a genuine server error.
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'payload_too_large', detail: 'Request body is larger than the 1 MB limit.' });
+  }
+  if (err instanceof SyntaxError && err.status === 400) {
+    return res.status(400).json({ error: 'invalid_json', detail: 'Request body is not valid JSON.' });
+  }
   logError('server', err.message);
   res.status(500).json({ error: 'server_error', detail: err.message });
 });
