@@ -152,7 +152,14 @@
       showLogin('Your session ended. Please sign in again.');
       throw new Error('Signed out. Please sign in again.');
     }
-    if (!res.ok) throw new Error(apiErrorText(res, data));
+    // Attach the parsed body to the error so callers can tell a
+    // not_configured 503 from a real failure and show the setup steps.
+    if (!res.ok) {
+      var err = new Error(apiErrorText(res, data));
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
     return data;
   }
 
@@ -251,7 +258,13 @@
     }
   });
 
-  function logout() {
+  async function logout() {
+    // Tell the server to delete the session row, so sessions do not pile
+    // up in the database. The local sign-out happens even if that call
+    // fails, so the user is never stuck signed in.
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', headers: authHeaders() });
+    } catch (e) { /* session still cleared below */ }
     state.token = '';
     sessionStorage.removeItem(TOKEN_KEY);
     showLogin();
@@ -344,9 +357,16 @@
 
   function isNotConfigured(data) {
     if (!data) return false;
-    if (data.code === 'not_configured') return true;
+    if (data.code === 'not_configured' || data.error === 'not_configured') return true;
     var text = ((data.error || '') + ' ' + (data.detail || '')).toLowerCase();
     return text.indexOf('not configured') !== -1 || text.indexOf('no api key') !== -1 || text.indexOf('api key') !== -1 && text.indexOf('missing') !== -1;
+  }
+
+  // Render the friendly setup guidance when an AI call failed only
+  // because no key is configured. Any other error shows as plain text.
+  function aiErrorHtml(e) {
+    if (isNotConfigured(e && e.data)) return aiNotConfiguredHtml();
+    return '<p class="error">' + esc(e.message) + '</p>';
   }
 
   function recommendationHtml(rec) {
@@ -568,10 +588,10 @@
       } else if (data.error) {
         out.innerHTML = '<p class="error">The strategist returned an error: ' + esc(data.error) + (data.detail ? ' ' + esc(data.detail) : '') + '</p>';
       } else {
-        out.innerHTML = recommendationHtml(data.recommendation ? data : data);
+        out.innerHTML = recommendationHtml(data);
       }
     } catch (e) {
-      out.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
+      out.innerHTML = aiErrorHtml(e);
     } finally {
       setBusy(btn, false);
     }
@@ -827,6 +847,10 @@
       var notes = asArray(p.notes_list || p.notesList || []);
       var interactions = asArray(p.interactions || []);
       try {
+        var idata = await api('/api/prospects/' + encodeURIComponent(id) + '/interactions');
+        interactions = asArray(idata.interactions || idata);
+      } catch (e) { /* keep the empty list when the fetch fails */ }
+      try {
         var ndata = await api('/api/prospects/' + encodeURIComponent(id) + '/notes');
         notes = asArray(ndata.notes || ndata);
       } catch (e) { /* keep notes embedded in the prospect record */ }
@@ -848,8 +872,8 @@
         (!notes.length && !notesText ? '<div class="empty">No data yet. No notes for this prospect.</div>' : '') +
         '<h3>Interaction log</h3>' +
         (interactions.length ? '<div class="list">' + interactions.map(function (x) {
-          return '<div class="item"><p><span class="tag">' + esc(x.type || 'Interaction') + '</span> ' + esc(x.summary || x.text || x.note || '') + '</p>' +
-            '<p class="meta">' + esc(x.date || x.created_at || x.createdAt || '') + '</p></div>';
+          return '<div class="item"><p><span class="tag">' + esc(x.kind || x.type || 'Interaction') + '</span> ' + esc(x.text || x.summary || x.note || '') + '</p>' +
+            '<p class="meta">' + esc(x.happened_on || x.date || x.created_at || x.createdAt || '') + '</p></div>';
         }).join('') + '</div>' : '<div class="empty">No data yet. No interactions logged for this prospect.</div>');
       $('crm-forms').hidden = false;
     } catch (e) {
@@ -867,7 +891,7 @@
     try {
       await api('/api/prospects/' + encodeURIComponent(id) + '/interactions', {
         method: 'POST',
-        body: { type: $('i-type').value, date: $('i-date').value || todayStr(), summary: $('i-summary').value.trim() }
+        body: { kind: $('i-type').value, text: $('i-summary').value.trim(), happened_on: $('i-date').value || null }
       });
       $('i-summary').value = '';
       $('i-date').value = '';
@@ -945,7 +969,7 @@
         }
       });
     } catch (e) {
-      out.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
+      out.innerHTML = aiErrorHtml(e);
     } finally {
       setBusy(btn, false);
     }
@@ -954,8 +978,7 @@
   /* ---------- Content Studio ---------- */
 
   async function loadContentPage() {
-    await loadProspectsCache();
-    await loadDraftsCache();
+    await Promise.all([loadProspectsCache(), loadDraftsCache()]);
     $('outreach-prospect').innerHTML = '<option value="">Select a prospect</option>' + prospectOptions('');
     renderDraftQueue();
   }
@@ -1003,7 +1026,7 @@
       });
       draftResultHtml(out, 'Post draft: ' + $('post-topic').value.trim(), data);
     } catch (e) {
-      out.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
+      out.innerHTML = aiErrorHtml(e);
     } finally {
       setBusy(btn, false);
     }
@@ -1023,7 +1046,7 @@
       });
       draftResultHtml(out, 'Comment draft', data);
     } catch (e) {
-      out.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
+      out.innerHTML = aiErrorHtml(e);
     } finally {
       setBusy(btn, false);
     }
@@ -1046,7 +1069,7 @@
       });
       draftResultHtml(out, (kind === 'connection' ? 'Connection message for ' : 'Follow-up message for ') + (prospect.name || ''), data);
     } catch (e) {
-      out.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
+      out.innerHTML = aiErrorHtml(e);
     } finally {
       setBusy(btn, false);
     }
@@ -1102,7 +1125,7 @@
         }
       });
     } catch (e) {
-      out.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
+      out.innerHTML = aiErrorHtml(e);
     } finally {
       setBusy(btn, false);
     }
@@ -1368,8 +1391,7 @@
     }
   }
   $('btn-refresh-analytics').addEventListener('click', async function () {
-    await loadProspectsCache();
-    await loadDraftsCache();
+    await Promise.all([loadProspectsCache(), loadDraftsCache()]);
     loadAnalytics();
   });
 
