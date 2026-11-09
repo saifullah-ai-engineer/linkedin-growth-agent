@@ -12,7 +12,8 @@ const path = require('node:path');
 
 const PORT = 3101;
 const BASE = `http://localhost:${PORT}`;
-const PASSWORD = 'testpass123';
+const PASSWORD = 'Testpass123!';
+const NEW_PASSWORD = 'Newpass4567!';
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'liga-test-'));
 let child;
 let token = '';
@@ -66,6 +67,14 @@ test('auth: setup is needed first, then setup returns a token', async () => {
   assert.equal(r.status, 400);
   assert.equal(r.data.error, 'invalid_password');
 
+  // The strength rule: 12 or more characters, upper and lower case, a
+  // digit, and a symbol. Each missing piece is rejected.
+  for (const weak of ['passwordpassword', 'Testpass123', 'Test123!', 'TESTPASS123!', 'testpass123!']) {
+    r = await req('POST', '/api/auth/setup', { password: weak }, false);
+    assert.equal(r.status, 400);
+    assert.equal(r.data.error, 'invalid_password');
+  }
+
   r = await req('POST', '/api/auth/setup', { password: PASSWORD }, false);
   assert.equal(r.status, 200);
   assert.equal(r.data.ok, true);
@@ -94,6 +103,67 @@ test('auth: wrong password fails, right password logs in, logout invalidates', a
   r = await req('GET', '/api/prospects');
   assert.equal(r.status, 401);
 
+  r = await req('POST', '/api/auth/login', { password: PASSWORD }, false);
+  assert.equal(r.status, 200);
+  token = r.data.token;
+});
+
+test('auth: change password requires the current one, signs out other sessions', async () => {
+  // A second session, so the sign-out of other sessions can be observed.
+  let r = await req('POST', '/api/auth/login', { password: PASSWORD }, false);
+  assert.equal(r.status, 200);
+  const otherToken = r.data.token;
+  assert.notEqual(otherToken, token);
+
+  const authReq = async (method, p, body, tok) => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (tok) headers.Authorization = 'Bearer ' + tok;
+    const res = await fetch(BASE + p, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* non JSON body */ }
+    return { status: res.status, data };
+  };
+
+  r = await authReq('POST', '/api/auth/change-password', { current_password: 'wrongpass', new_password: NEW_PASSWORD }, token);
+  assert.equal(r.status, 401);
+  assert.equal(r.data.error, 'invalid_credentials');
+
+  r = await authReq('POST', '/api/auth/change-password', { current_password: PASSWORD, new_password: 'weak' }, token);
+  assert.equal(r.status, 400);
+  assert.equal(r.data.error, 'invalid_password');
+
+  r = await authReq('POST', '/api/auth/change-password', { current_password: PASSWORD, new_password: NEW_PASSWORD }, token);
+  assert.equal(r.status, 200);
+  assert.equal(r.data.ok, true);
+
+  // The session that changed the password still works.
+  r = await req('GET', '/api/prospects');
+  assert.equal(r.status, 200);
+  // The other session is signed out.
+  r = await authReq('GET', '/api/prospects', null, otherToken);
+  assert.equal(r.status, 401);
+
+  // Change the password back so the rest of the suite keeps working.
+  r = await authReq('POST', '/api/auth/change-password', { current_password: NEW_PASSWORD, new_password: PASSWORD }, token);
+  assert.equal(r.status, 200);
+});
+
+test('auth: an expired session is rejected and reported as logged out', async () => {
+  // Expire the current session directly in the throwaway database, then
+  // confirm the API treats the token as dead.
+  const { DatabaseSync } = require('node:sqlite');
+  const db = new DatabaseSync(path.join(tmpDir, 'app.db'));
+  db.prepare("UPDATE sessions SET expires_at = datetime('now', '-1 hour') WHERE token = ?").run(token);
+  db.close();
+
+  let r = await req('GET', '/api/prospects');
+  assert.equal(r.status, 401);
+
+  r = await req('GET', '/api/auth/status');
+  assert.equal(r.status, 200);
+  assert.equal(r.data.loggedIn, false);
+
+  // Sign in again so the rest of the suite has a valid token.
   r = await req('POST', '/api/auth/login', { password: PASSWORD }, false);
   assert.equal(r.status, 200);
   token = r.data.token;
@@ -402,6 +472,58 @@ test('recommendations, analytics, audit, and errors', async () => {
   r = await req('GET', '/api/errors');
   assert.equal(r.status, 200);
   assert.ok(Array.isArray(r.data));
+});
+
+test('security: headers are set, bad input is rejected, errors leak nothing', async () => {
+  // Security headers on the dashboard page and on API responses.
+  let res = await fetch(BASE + '/');
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(res.headers.get('x-frame-options'), 'DENY');
+  assert.equal(res.headers.get('referrer-policy'), 'no-referrer');
+  const csp = res.headers.get('content-security-policy') || '';
+  assert.ok(csp.includes("default-src 'self'"));
+  assert.ok(csp.includes("frame-ancestors 'none'"));
+
+  res = await fetch(BASE + '/api/auth/status');
+  assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+  assert.ok((res.headers.get('content-security-policy') || '').includes("default-src 'self'"));
+
+  // Bad prospect input: unknown stage, out-of-range score, wrong score type,
+  // oversized name.
+  let r = await req('POST', '/api/prospects', { name: 'Bad Stage', stage: 'Bogus' });
+  assert.equal(r.status, 400);
+  r = await req('POST', '/api/prospects', { name: 'Bad Score', relevance_score: 150 });
+  assert.equal(r.status, 400);
+  r = await req('POST', '/api/prospects', { name: 'Bad Score', relevance_score: 'high' });
+  assert.equal(r.status, 400);
+  r = await req('POST', '/api/prospects', { name: 'x'.repeat(3000) });
+  assert.equal(r.status, 400);
+
+  // Wrong types elsewhere.
+  r = await req('POST', '/api/memory', { key: 42, value: 'x' });
+  assert.equal(r.status, 400);
+  r = await req('POST', '/api/goals', { title: 'Goal', status: 'Bogus' });
+  assert.equal(r.status, 400);
+  r = await req('POST', '/api/drafts', { type: 'post', title: 'T', content: 'C', status: 'weird' });
+  assert.equal(r.status, 400);
+
+  // Oversized AI input is rejected before any model work starts.
+  r = await req('POST', '/api/ai/chat', { message: 'x'.repeat(25000) });
+  assert.equal(r.status, 400);
+  assert.equal(r.data.error, 'invalid_request');
+
+  // Error responses carry no internal detail: no file path, no database
+  // name, no stack trace, no SQLite wording.
+  const bodyText = JSON.stringify(r.data);
+  assert.ok(!bodyText.includes('app.db'));
+  assert.ok(!bodyText.includes('backend/data'));
+  assert.ok(!bodyText.includes('sqlite'));
+  assert.ok(!bodyText.includes('Error:'));
+
+  r = await req('GET', '/api/prospects/99999');
+  assert.equal(r.status, 404);
+  assert.ok(!JSON.stringify(r.data).includes('app.db'));
 });
 
 // Runs last on purpose: after 5 failed logins the address is throttled for
