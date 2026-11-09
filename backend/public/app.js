@@ -603,12 +603,15 @@
     var list = $('audience-list');
     list.innerHTML = '<p class="muted">Loading prioritized prospects.</p>';
     try {
-      var data = await api('/api/prospects/prioritized');
+      // The ranking is capped at the top 100. Rendering thousands of rows
+      // would freeze the page, and nobody reads past the first hundred.
+      var data = await api('/api/prospects/prioritized?limit=100');
       var ranked = asArray(data.prioritized || data.prospects || data);
       if (!ranked.length) {
         list.innerHTML = '<div class="empty">No data yet. Add prospects first, then the ranking will appear here with a reason for each rank.</div>';
       } else {
-        list.innerHTML = '<div class="list">' + ranked.map(function (p, i) {
+        var note = ranked.length === 100 ? '<p class="muted">Showing the top 100 ranked prospects.</p>' : '';
+        list.innerHTML = note + '<div class="list">' + ranked.map(function (p, i) {
           var rank = p.rank !== undefined ? p.rank : i + 1;
           var reason = p.rank_reason || p.reason || p.relevance_reason || p.relevanceReason || '';
           return '<div class="item"><h3>#' + esc(rank) + ' ' + esc(p.name || 'Unnamed') + '</h3>' +
