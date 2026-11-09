@@ -257,7 +257,7 @@ Run from the `backend/` folder:
 ```bash
 npm start             # same as node server.js
 npm run build         # rebuild public/app.min.js from public/app.js with terser
-npm test              # run the automated API test suite (10 tests, about 5 seconds)
+npm test              # run the automated API test suite (16 tests, about 5 seconds)
 node --check server.js
 node --check openrouter.js
 node --check db.js
@@ -304,7 +304,7 @@ Full endpoint list: `backend/README.md`.
 
 ### Testing
 
-The backend has a real automated API test suite now: `backend/test/api.test.js`, run with `npm test` from the `backend` folder. It uses Node's built-in test runner, no extra dependency, and starts the real server as a child process against a throwaway data directory, so it never touches a real database or a real key. 13 tests, all passing, in about 5 seconds, covering auth and setup, config validation including the paid-model rejection, the not-configured AI responses, prospect CRUD and prioritized ranking with paging, interactions and notes, goals, memory, drafts and approval, the kill switch, recommendations, analytics, audit, login throttling, body errors, and error shapes.
+The backend has a real automated API test suite now: `backend/test/api.test.js`, run with `npm test` from the `backend` folder. It uses Node's built-in test runner, no extra dependency, and starts the real server as a child process against a throwaway data directory, so it never touches a real database or a real key. 16 tests, all passing, in about 5 seconds, covering auth and setup, password strength, change password, expired sessions, config validation including the paid-model rejection, the not-configured AI responses, prospect CRUD and prioritized ranking with paging, interactions and notes, goals, memory, drafts and approval, the kill switch, recommendations, analytics, audit, login throttling, body errors, security headers, input validation, and error hygiene.
 
 Verification is done in three ways:
 
@@ -318,11 +318,15 @@ There is no hosted deployment. This is a local app by design: the backend runs o
 
 ### Security considerations
 
-- **Local password**: the first-run password is hashed with scrypt and stored in the local database. There is no password reset. If you lose it, delete `backend/data/app.db` to reset the app to first-run setup, which also deletes all prospects, drafts, and memory.
-- **Bearer tokens**: login returns a token stored in `sessionStorage` by the dashboard and in `chrome.storage.local` by the extension. Log out to delete the server-side session row.
-- **API key**: the OpenRouter key lives server side only, in `backend/.env` (written with mode 0600) or the `OPENROUTER_API_KEY` environment variable. It is never logged, never returned by any API response, and never written into any dashboard file. The extension never holds it.
+- **Local password**: the first-run password is hashed with scrypt and stored in the local database. The rule is 12 or more characters with upper and lower case, a digit, and a symbol. Change it in Settings; changing it signs out every other session. There is no password reset. If you lose it, delete `backend/data/app.db` to reset the app to first-run setup, which also deletes all prospects, drafts, and memory.
+- **Bearer tokens**: login returns a token stored in `sessionStorage` by the dashboard and in `chrome.storage.local` by the extension. Sessions expire 24 hours after sign-in; an expired token is rejected and deleted. Log out to delete the server-side session row.
+- **Login throttle**: after 5 failed logins from one address inside 60 seconds, login answers 429 without running a password check.
+- **Headers**: every response carries a strict content security policy (same origin only, no inline scripts or styles, no frames), X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy no-referrer, and a restrictive permissions policy. No CORS headers are emitted, so a page on another origin cannot read API responses.
+- **Input validation**: prospect stage must be one of the 10 real stages, relevance score a whole number from 0 to 100, and text fields are type-checked and length-capped. AI inputs are capped at 20000 characters in total. Server errors return a generic message to the client; the real message goes to the server log only.
+- **API key**: the OpenRouter key lives server side only, in `backend/.env` (written with mode 0600, enforced on every save) or the `OPENROUTER_API_KEY` environment variable. It is never logged, never returned by any API response, and never written into any dashboard file. The extension never holds it.
 - **Auth on every route**: every `/api/*` endpoint except status, setup, and login requires the bearer token. The kill switch blocks AI and draft approval with `403 kill_switch_on`.
-- **Audit and error logs**: approving or rejecting a draft, deleting a prospect, goal, or memory item, changing config, and toggling the kill switch each write an `audit_log` row, viewable in Settings. Failures are written to `error_log`.
+- **Audit and error logs**: approving or rejecting a draft, deleting a prospect, goal, or memory item, changing config, changing the password, and toggling the kill switch each write an `audit_log` row, viewable in Settings. Failures are written to `error_log`. The audit log keeps the latest 1000 rows and the error log the latest 500.
+- **Honest limits**: this is a local single-user app, not a multi-user production service. There is no per-user separation, no account lockout beyond the login throttle, and no global rate limit. The login is a single local password, and the app must never be exposed to the internet.
 - **No LinkedIn automation**: the app never sends anything to LinkedIn, and the extension never clicks, likes, connects, or messages for you. That is intentional and protects the account.
 
 ### Contributing
@@ -408,7 +412,7 @@ A full end-to-end verification found and fixed six real bugs, all re-tested afte
 5. **Config accepted impossible values.** Temperature 99 and max tokens -5 saved without complaint. The API now rejects a temperature outside 0 to 2 and max tokens outside 100 to 32000 with 400.
 6. **Logout never told the server.** Signing out only cleared the browser token, so session rows piled up in the database. Logout now deletes the server-side session, and still signs out locally if that call fails.
 
-Other changes in the same upgrade: an automated API test suite (`backend/test/api.test.js`, 10 tests, about 5 seconds, also in CI), CI moved to Node 24 with a README placeholder check, issue and pull request templates, CONTRIBUTING.md, SECURITY.md, Dependabot for the backend, the root `.gitignore` now covers `data/`, and `/api/analytics` returns `totalDrafts` so the Analytics page no longer relies on a possibly stale dashboard cache. The dashboard now loads its two cache calls in parallel on the Content Studio page and the Analytics refresh. Nothing about the free-models-only chain, the extension permissions, or the honest limits changed.
+Other changes in the same upgrade: an automated API test suite (`backend/test/api.test.js`, 16 tests after the security hardening, about 5 seconds, also in CI), CI moved to Node 24 with a README placeholder check, issue and pull request templates, CONTRIBUTING.md, SECURITY.md, Dependabot for the backend, the root `.gitignore` now covers `data/`, and `/api/analytics` returns `totalDrafts` so the Analytics page no longer relies on a possibly stale dashboard cache. The dashboard now loads its two cache calls in parallel on the Content Studio page and the Analytics refresh. Nothing about the free-models-only chain, the extension permissions, or the honest limits changed.
 
 Measured after the upgrade: API p50 1.4 to 3.0 ms and p95 2.6 to 6.9 ms across the ten main endpoints (20 runs each, before: p50 1.0 to 1.9 ms, p95 1.3 to 12.0 ms). The API was already fast; the change is within run-to-run noise, not a speedup. Bundle sizes: `app.min.js` 49,270 bytes (12,560 bytes gzipped on the wire), `styles.css` 19,814 bytes (5,119 bytes gzipped). CSS minification was measured and skipped: it would save about 1 KB on the wire, not worth a new build dependency. Lighthouse 13.6.0 after the upgrade, two real runs: first run setup 100/100/100/100 and dashboard 100/100/100/100; second run setup 99/100/100/100 and dashboard 95/100/100/100. All four categories stay at 90 or above.
 

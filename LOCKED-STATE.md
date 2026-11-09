@@ -96,3 +96,18 @@ Abd asked to upgrade the repo so it is genuinely working and efficient. This add
 - Free-models-only chain, all 12 models, enforced at the same three layers. No paid model reference anywhere.
 - Extension permissions and limits. No LinkedIn automation, scraping, or anything LinkedIn does not support.
 - No secret, `.env`, database file, or node_modules in the changes. The project ships clean: no data directory, no `.env`.
+
+---
+
+## Addendum: security and authentication hardening, 2026-11-10
+
+Abd asked for proper security and authentication. Applied on top of the upgrade above; the stress-test fixes were already pushed separately.
+
+- Password rule is now 12 or more characters with upper and lower case, a digit, and a symbol, enforced at setup and at password change. A change-password endpoint and a Settings form were added; changing the password signs out every other session.
+- Sessions expire 24 hours after sign-in, enforced on every authenticated route and on the auth status check. Expired tokens are deleted when seen. Old sessions created before expiry existed were given a 24 hour expiry from first start.
+- Every response carries a strict content security policy (same origin only, no inline scripts or styles, no frames), X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy no-referrer, and a restrictive permissions policy. No CORS headers are emitted.
+- Server errors return a generic message to the client; the real message goes to the server log only. The OpenRouter .env file is tightened to mode 0600 on every key save.
+- Input validation: prospect stage must be one of the 10 real stages, relevance score a whole number from 0 to 100, text fields type-checked and length-capped, goal status limited to Active, Done, or Paused, AI inputs capped at 20000 characters. Request shape is validated before the kill switch and key checks.
+- Logs are bounded: audit_log keeps the latest 1000 rows, error_log the latest 500.
+- Tests: 16 pass, 0 fail, covering weak passwords, change password, expired sessions, security headers, input validation, and error hygiene. The login throttle (5 failed attempts per address per 60 s, then 429) is unchanged.
+- Still pending: the OpenRouter key is still not configured in the backend. Live AI verification still needs Abd to paste his key into the app's Model Configuration page or set OPENROUTER_API_KEY in backend/.env.
