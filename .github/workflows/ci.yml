@@ -16,14 +16,23 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # node:sqlite needs Node 22.5 or newer. Node 24 is the LTS
+          # release and runs it with no experimental flag.
+          node-version: "24"
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm run build
+      - run: npm test
       - run: node --check server.js
       - run: node --check openrouter.js
       - run: node --check db.js
       - run: for f in agents/*.js; do node --check "$f"; done
       - run: for f in ../extension/*.js; do node --check "$f"; done
       - run: git diff --exit-code public/app.min.js public/app.min.js.map
+      # READMEs must never contain placeholder text that fails as written.
+      - run: |
+          if grep -rn -e 'your-username' -e '<YOUR_GIT_URL>' -e '<YOUR_PROJECT_NAME>' ../README.md README.md ../extension/README.md; then
+            echo "Placeholder text found in a README. Replace it with real values."
+            exit 1
+          fi
