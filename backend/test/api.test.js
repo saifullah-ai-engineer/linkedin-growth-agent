@@ -324,6 +324,58 @@ test('drafts: create, approve, reject, and kill switch blocks approval', async (
   assert.equal(r.data.enabled, false);
 });
 
+test('prospects: limit and offset paging', async () => {
+  let r = await req('GET', '/api/prospects?limit=2');
+  assert.equal(r.status, 200);
+  assert.equal(r.data.length, 2);
+
+  r = await req('GET', '/api/prospects?limit=1&offset=1');
+  assert.equal(r.status, 200);
+  assert.equal(r.data.length, 1);
+
+  r = await req('GET', '/api/prospects?limit=abc');
+  assert.equal(r.status, 400);
+
+  r = await req('GET', '/api/prospects?limit=2000');
+  assert.equal(r.status, 400);
+
+  r = await req('GET', '/api/prospects?offset=-1');
+  assert.equal(r.status, 400);
+
+  r = await req('GET', '/api/prospects/prioritized?limit=1');
+  assert.equal(r.status, 200);
+  assert.equal(r.data.length, 1);
+  assert.equal(typeof r.data[0].priority_score, 'number');
+
+  r = await req('GET', '/api/prospects/prioritized?limit=2');
+  assert.equal(r.status, 200);
+  assert.equal(r.data.length, 2);
+  assert.ok(r.data[0].priority_score >= r.data[1].priority_score);
+
+  r = await req('GET', '/api/prospects/prioritized?limit=0');
+  assert.equal(r.status, 200);
+  assert.equal(r.data.length, 0);
+});
+
+test('errors: malformed JSON is 400, oversized body is 413', async () => {
+  const raw = async (method, p, body, contentType) => {
+    const headers = { 'Content-Type': contentType || 'application/json' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    const res = await fetch(BASE + p, { method, headers, body });
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* non JSON body */ }
+    return { status: res.status, data };
+  };
+  let r = await raw('POST', '/api/auth/login', '{"password": }');
+  assert.equal(r.status, 400);
+  assert.equal(r.data.error, 'invalid_json');
+
+  const big = JSON.stringify({ name: 'x'.repeat(2000000) });
+  r = await raw('POST', '/api/prospects', big);
+  assert.equal(r.status, 413);
+  assert.equal(r.data.error, 'payload_too_large');
+});
+
 test('recommendations, analytics, audit, and errors', async () => {
   let r = await req('GET', '/api/recommendations');
   assert.equal(r.status, 200);
@@ -350,4 +402,21 @@ test('recommendations, analytics, audit, and errors', async () => {
   r = await req('GET', '/api/errors');
   assert.equal(r.status, 200);
   assert.ok(Array.isArray(r.data));
+});
+
+// Runs last on purpose: after 5 failed logins the address is throttled for
+// 60 seconds, so no login test may follow this one.
+test('auth: 5 failed logins throttle the address with 429', async () => {
+  for (let i = 0; i < 5; i++) {
+    const r = await req('POST', '/api/auth/login', { password: 'wrongpass' }, false);
+    assert.equal(r.status, 401);
+  }
+  let r = await req('POST', '/api/auth/login', { password: 'wrongpass' }, false);
+  assert.equal(r.status, 429);
+  assert.equal(r.data.error, 'too_many_attempts');
+  assert.ok(typeof r.data.retry_after === 'number' && r.data.retry_after > 0);
+
+  // Even the right password is throttled while the window is open.
+  r = await req('POST', '/api/auth/login', { password: PASSWORD }, false);
+  assert.equal(r.status, 429);
 });
