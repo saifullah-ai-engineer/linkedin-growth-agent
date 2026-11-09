@@ -25,9 +25,9 @@
     <p>This is the first run. Choose a password for this dashboard. It is stored only on this machine, in the local database.</p>
     <form id="form-setup">
       <label for="setup-password">Password</label>
-      <input id="setup-password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+      <input id="setup-password" type="password" required minlength="12" autocomplete="new-password" placeholder="At least 12 characters, upper and lower case, a number, a symbol">
       <label for="setup-password2">Confirm password</label>
-      <input id="setup-password2" type="password" required minlength="8" autocomplete="new-password" placeholder="Repeat the password">
+      <input id="setup-password2" type="password" required minlength="12" autocomplete="new-password" placeholder="Repeat the password">
       <p class="error" id="setup-error" hidden></p>
       <button class="btn primary block" type="submit">Create password and continue</button>
     </form>
@@ -503,6 +503,22 @@
         <p class="muted">A record of actions taken in this dashboard.</p>
         <div id="audit-log"><p class="muted">Loading audit log.</p></div>
         <button class="btn" type="button" id="btn-refresh-audit">Refresh audit log</button>
+      </div>
+      <div class="card">
+        <h2>Change password</h2>
+        <p class="muted">Your password must be at least 12 characters, with upper and lower case letters, a number, and a symbol. Changing it signs out every other session. Sessions also expire 24 hours after sign-in.</p>
+        <form id="form-password">
+          <label for="pw-current">Current password</label>
+          <input id="pw-current" type="password" required autocomplete="current-password" placeholder="Your current password">
+          <label for="pw-new">New password</label>
+          <input id="pw-new" type="password" required minlength="12" autocomplete="new-password" placeholder="At least 12 characters, upper and lower case, a number, a symbol">
+          <label for="pw-new2">Confirm new password</label>
+          <input id="pw-new2" type="password" required minlength="12" autocomplete="new-password" placeholder="Repeat the new password">
+          <div class="row">
+            <button class="btn primary" type="submit" id="btn-change-password">Change password</button>
+            <span class="muted" id="password-status"></span>
+          </div>
+        </form>
       </div>
       <div class="card">
         <h2>Data</h2>

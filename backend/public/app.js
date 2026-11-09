@@ -1541,6 +1541,28 @@
 
   /* ---------- Settings ---------- */
 
+  $('form-password').addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    var status = $('password-status');
+    var current = $('pw-current').value;
+    var next = $('pw-new').value;
+    var confirm = $('pw-new2').value;
+    if (next !== confirm) {
+      status.textContent = 'The new passwords do not match.';
+      return;
+    }
+    try {
+      await api('/api/auth/change-password', { method: 'POST', body: { current_password: current, new_password: next } });
+      $('pw-current').value = '';
+      $('pw-new').value = '';
+      $('pw-new2').value = '';
+      status.textContent = 'Password changed. Other sessions are signed out.';
+      toast('Password changed.');
+    } catch (e) {
+      status.textContent = e.message;
+    }
+  });
+
   $('kill-toggle').addEventListener('change', async function () {
     var enabled = $('kill-toggle').checked;
     var note = $('kill-note');
