@@ -15,6 +15,11 @@ An evidence-based AI strategist, prospect CRM, content studio, profile optimizer
 *Designed in HTML and CSS from the real dashboard layout and empty-state numbers. Not a screenshot.*
 
 Built for Saif Ullah, Agentic AI Engineer at TechAurah. LinkedIn: linkedin.com/in/saif-ullah-ai-engineer. Portfolio: saifullah-ai-engineer.me. GitHub: saifullah-ai-engineer.
+## Watch the overview
+
+![LinkedIn Growth Agent overview video, 2 minutes 37 seconds](<https://github.com/user-attachments/assets/ffffb7f7-b3ee-40d0-ac26-e20032ece190>)
+
+The 2-minute overview (2:37) walks through the dashboard, the six agents, the content studio, and the extension.
 
 ## Overview
 
